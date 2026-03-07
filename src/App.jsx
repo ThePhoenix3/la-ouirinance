@@ -127,35 +127,35 @@ const DEPT_ZONES = {
 };
 
 const DEMO_TEAM = [
-{ id: 1, name: "Djany Legrand", role: "Manager", operator: "Free", permis: true, voiture: true, active: true },
-{ id: 2, name: "Leo Merde", role: "Confirme", operator: "Free", permis: true, voiture: true, active: true },
-{ id: 3, name: "Stephane Legrand", role: "Confirme", operator: "Free", permis: true, voiture: true, active: true },
-{ id: 4, name: "Sandra Pereira", role: "Confirme", operator: "Free", permis: true, voiture: false, active: true },
-{ id: 5, name: "William Goujon", role: "Confirme", operator: "Free", permis: true, voiture: true, active: true },
-{ id: 6, name: "Yannis Aboulfatah", role: "Confirme", operator: "Free", permis: true, voiture: false, active: true },
-{ id: 7, name: "Lyna Belkessa", role: "Confirme", operator: "Free", permis: false, voiture: false, active: true },
-{ id: 8, name: "Ali Atf", role: "Confirme", operator: "Free", permis: true, voiture: true, active: true },
-{ id: 9, name: "Victor Moize", role: "Confirme", operator: "Free", permis: true, voiture: false, active: true },
-{ id: 10, name: "Momed Ali", role: "Confirme", operator: "Free", permis: true, voiture: false, active: true },
-{ id: 11, name: "Pablo Grasset", role: "Confirme", operator: "Free", permis: true, voiture: false, active: true },
-{ id: 12, name: "Hamid Atroune", role: "Debutant", operator: "Free", permis: true, voiture: false, active: true },
-{ id: 13, name: "Cheick Ouedraogo", role: "Debutant", operator: "Free", permis: false, voiture: false, active: true },
-{ id: 14, name: "Mohamed Mehdi Larech", role: "Debutant", operator: "Free", permis: false, voiture: false, active: true },
-{ id: 15, name: "Omar Mbengue", role: "Debutant", operator: "Free", permis: false, voiture: false, active: true },
-{ id: 16, name: "Melodie Mendousse", role: "Debutant", operator: "Free", permis: false, voiture: false, active: true },
-{ id: 17, name: "Ronan Kombo", role: "Debutant", operator: "Free", permis: false, voiture: false, active: true },
-{ id: 18, name: "Abdellah Cheikh", role: "Debutant", operator: "Free", permis: false, voiture: false, active: true },
-{ id: 19, name: "Paul Geriltault", role: "Debutant", operator: "Free", permis: true, voiture: false, active: true },
-{ id: 20, name: "Abdel Nouar", role: "Debutant", operator: "Free", permis: false, voiture: false, active: true },
-{ id: 21, name: "Ouissem Ouirini", role: "Debutant", operator: "Free", permis: false, voiture: false, active: true },
-{ id: 22, name: "Titouan Salaun", role: "Debutant", operator: "Free", permis: false, voiture: false, active: true },
-{ id: 23, name: "Nora Wahid", role: "Debutant", operator: "Free", permis: false, voiture: false, active: true },
-{ id: 24, name: "Eloise Meillerais", role: "Debutant", operator: "Free", permis: false, voiture: false, active: true },
-{ id: 25, name: "Come Audonnet", role: "Debutant", operator: "Free", permis: false, voiture: false, active: true },
-{ id: 26, name: "Ilhan Kocak", role: "Debutant", operator: "Free", permis: false, voiture: false, active: true },
-{ id: 27, name: "Ines Ouirini", role: "Debutant", operator: "Free", permis: false, voiture: false, active: true },
-{ id: 28, name: "Shana David", role: "Debutant", operator: "Free", permis: false, voiture: false, active: true },
-{ id: 29, name: "Adam El Jazouli", role: "Confirme", operator: "Free", permis: false, voiture: false, active: true },
+{ id: 1, name: "Djany Legrand", role: "Manager", operators: ["Free"], permis: true, voiture: true, active: true },
+{ id: 2, name: "Leo Merde", role: "Confirme", operators: ["Free"], permis: true, voiture: true, active: true },
+{ id: 3, name: "Stephane Legrand", role: "Confirme", operators: ["Free"], permis: true, voiture: true, active: true },
+{ id: 4, name: "Sandra Pereira", role: "Confirme", operators: ["Free"], permis: true, voiture: false, active: true },
+{ id: 5, name: "William Goujon", role: "Confirme", operators: ["Free"], permis: true, voiture: true, active: true },
+{ id: 6, name: "Yannis Aboulfatah", role: "Confirme", operators: ["Free"], permis: true, voiture: false, active: true },
+{ id: 7, name: "Lyna Belkessa", role: "Confirme", operators: ["Free"], permis: false, voiture: false, active: true },
+{ id: 8, name: "Ali Atf", role: "Confirme", operators: ["Free"], permis: true, voiture: true, active: true },
+{ id: 9, name: "Victor Moize", role: "Confirme", operators: ["Free"], permis: true, voiture: false, active: true },
+{ id: 10, name: "Momed Ali", role: "Confirme", operators: ["Free"], permis: true, voiture: false, active: true },
+{ id: 11, name: "Pablo Grasset", role: "Confirme", operators: ["Free"], permis: true, voiture: false, active: true },
+{ id: 12, name: "Hamid Atroune", role: "Debutant", operators: ["Free"], permis: true, voiture: false, active: true },
+{ id: 13, name: "Cheick Ouedraogo", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true },
+{ id: 14, name: "Mohamed Mehdi Larech", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true },
+{ id: 15, name: "Omar Mbengue", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true },
+{ id: 16, name: "Melodie Mendousse", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true },
+{ id: 17, name: "Ronan Kombo", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true },
+{ id: 18, name: "Abdellah Cheikh", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true },
+{ id: 19, name: "Paul Geriltault", role: "Debutant", operators: ["Free"], permis: true, voiture: false, active: true },
+{ id: 20, name: "Abdel Nouar", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true },
+{ id: 21, name: "Ouissem Ouirini", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true },
+{ id: 22, name: "Titouan Salaun", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true },
+{ id: 23, name: "Nora Wahid", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true },
+{ id: 24, name: "Eloise Meillerais", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true },
+{ id: 25, name: "Come Audonnet", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true },
+{ id: 26, name: "Ilhan Kocak", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true },
+{ id: 27, name: "Ines Ouirini", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true },
+{ id: 28, name: "Shana David", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true },
+{ id: 29, name: "Adam El Jazouli", role: "Confirme", operators: ["Free"], permis: false, voiture: false, active: true },
 ];
 
 const DEMO_CARS = [
@@ -1674,12 +1674,12 @@ return (
 function TeamTab({ team, saveTeam, contracts }) {
 const [mo, setMo] = useState(false);
 const [em, setEm] = useState(null);
-const [f, setF] = useState({ name: "", role: "Debutant", operator: "Bouygues", permis: false, voiture: false });
+const [f, setF] = useState({ name: "", role: "Debutant", operators: ["Free"], permis: false, voiture: false });
 const [fl, setFl] = useState("");
 const [vue, setVue] = useState("liste");
 
-function openAdd() { setEm(null); setF({ name: "", role: "Debutant", operator: "Bouygues", permis: false, voiture: false }); setMo(true); }
-function openEdit(m) { setEm(m); setF({ name: m.name, role: m.role, operator: m.operator, permis: m.permis, voiture: m.voiture }); setMo(true); }
+function openAdd() { setEm(null); setF({ name: "", role: "Debutant", operators: ["Free"], permis: false, voiture: false }); setMo(true); }
+function openEdit(m) { setEm(m); setF({ name: m.name, role: m.role, operators: Array.isArray(m.operators) ? m.operators : [m.operator || "Free"], permis: m.permis, voiture: m.voiture }); setMo(true); }
 function save() {
 if (!f.name.trim()) return;
 if (em) { saveTeam(team.map(function(m) { return m.id === em.id ? Object.assign({}, m, f) : m; })); }
@@ -1705,6 +1705,7 @@ function MemberCard({ m, onClick, showWeek }) {
           <div style={{ fontSize: 13, fontWeight: 600, color: "#1D1D1F", letterSpacing: -0.2 }}>{m.name}</div>
           <div style={{ display: "flex", gap: 4, marginTop: 3, flexWrap: "wrap", alignItems: "center" }}>
             <Badge color={ROLE_COLORS[m.role]}>{ROLE_LABELS[m.role]}</Badge>
+            {(Array.isArray(m.operators) ? m.operators : [m.operator]).filter(Boolean).map(function(op) { return <Badge key={op} color={OP_COLORS[op]}>{op}</Badge>; })}
             {m.permis && <Badge color="#34C759">Permis</Badge>}
             {m.voiture && <Badge color="#7C3AED">Voiture</Badge>}
             {!m.active && <Badge color="#FF3B30">Inactif</Badge>}
@@ -1753,7 +1754,7 @@ return (
   var groups = Object.entries(VTA_GROUPS).map(function(entry) {
     var vtaCode = entry[0]; var names = entry[1];
     var members = names.map(function(name) {
-      return team.find(function(m) { return m.name === name; }) || { id: name, name: name, role: "Debutant", active: true, operator: "Free", permis: false, voiture: false };
+      return team.find(function(m) { return m.name === name; }) || { id: name, name: name, role: "Debutant", active: true, operators: ["Free"], permis: false, voiture: false };
     }).sort(function(a, b) { return roleOrder[a.role] - roleOrder[b.role]; });
     var label = vtaCode.replace("vta-", "");
     label = label.charAt(0).toUpperCase() + label.slice(1);
@@ -1761,25 +1762,37 @@ return (
   });
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 20 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {groups.map(function(g) {
         return (
           <div key={g.vtaCode} style={{ background: "#F5F5F7", borderRadius: 16, padding: 16 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#AEAEB2", letterSpacing: 1, textTransform: "uppercase", marginBottom: 10 }}>Équipe {g.label}</div>
-            {/* Leader */}
-            <div style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 10, fontWeight: 600, color: "#0071E3", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 4 }}>Référent</div>
-              <MemberCard m={g.leader} onClick={function() { openEdit(g.leader); }} showWeek={true} />
-            </div>
-            {/* Members */}
-            {g.members.length > 0 && (
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 600, color: "#6E6E73", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 4, marginTop: 8 }}>Commerciaux ({g.members.length})</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {g.members.map(function(m) { return <MemberCard key={m.id || m.name} m={m} onClick={function() { openEdit(m); }} showWeek={true} />; })}
-                </div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#AEAEB2", letterSpacing: 1, textTransform: "uppercase", marginBottom: 12 }}>Équipe {g.label}</div>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 0 }}>
+              {/* Leader */}
+              <div style={{ minWidth: 240, maxWidth: 260 }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: "#0071E3", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 4 }}>Référent</div>
+                <MemberCard m={g.leader} onClick={function() { openEdit(g.leader); }} showWeek={true} />
               </div>
-            )}
+              {/* Connector */}
+              {g.members.length > 0 && (
+                <div style={{ display: "flex", alignItems: "center", alignSelf: "stretch", padding: "0 12px" }}>
+                  <div style={{ width: 24, height: 2, background: "#D2D2D7" }} />
+                </div>
+              )}
+              {/* Members */}
+              {g.members.length > 0 && (
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: "#6E6E73", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 4 }}>Commerciaux ({g.members.length})</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {g.members.map(function(m) { return (
+                      <div key={m.id || m.name} style={{ minWidth: 220, maxWidth: 260, flex: "1 1 220px" }}>
+                        <MemberCard m={m} onClick={function() { openEdit(m); }} showWeek={true} />
+                      </div>
+                    ); })}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         );
       })}
@@ -1792,7 +1805,7 @@ return (
 <div><label style={{ fontSize: 12, fontWeight: 600, color: "#6E6E73", display: "block", marginBottom: 4 }}>Nom</label><Inp value={f.name} onChange={function(v) { setF(Object.assign({}, f, { name: v })); }} placeholder="Nom" /></div>
 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
 <div><label style={{ fontSize: 12, fontWeight: 600, color: "#6E6E73", display: "block", marginBottom: 4 }}>Role</label><Sel value={f.role} onChange={function(v) { setF(Object.assign({}, f, { role: v })); }} options={ROLES} style={{ width: "100%" }} /></div>
-<div><label style={{ fontSize: 12, fontWeight: 600, color: "#6E6E73", display: "block", marginBottom: 4 }}>Operateur</label><Sel value={f.operator} onChange={function(v) { setF(Object.assign({}, f, { operator: v })); }} options={OPERATORS} style={{ width: "100%" }} /></div>
+<div><label style={{ fontSize: 12, fontWeight: 600, color: "#6E6E73", display: "block", marginBottom: 4 }}>Opérateurs</label><div style={{ display: "flex", gap: 12, marginTop: 4 }}>{OPERATORS.map(function(op) { var checked = (f.operators || []).indexOf(op) >= 0; return <label key={op} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}><input type="checkbox" checked={checked} onChange={function(e) { var ops = (f.operators || []).filter(function(x) { return x !== op; }); if (e.target.checked) ops = ops.concat(op); setF(Object.assign({}, f, { operators: ops })); }} /><Badge color={OP_COLORS[op]}>{op}</Badge></label>; })}</div></div>
 </div>
 <div style={{ display: "flex", gap: 20 }}>
 <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}><input type="checkbox" checked={f.permis} onChange={function(e) { setF(Object.assign({}, f, { permis: e.target.checked })); }} />Permis</label>
@@ -2613,7 +2626,7 @@ var isContract = cols.some(function(c) { return c.indexOf("heure") >= 0 || c.ind
       if (!name) return null;
       var rl = ROLES.find(function(x) { return g(["role", "poste"]).toLowerCase().indexOf(x.toLowerCase()) >= 0; }) || "Debutant";
       var op = OPERATORS.find(function(x) { return g(["operateur", "produit"]).toLowerCase().indexOf(x.toLowerCase()) >= 0; }) || "Bouygues";
-      return { id: Date.now() + i, name: name, role: rl, operator: op, permis: ["oui", "yes", "1", "true", "x"].indexOf(g(["permis"]).toLowerCase()) >= 0, voiture: ["oui", "yes", "1", "true", "x"].indexOf(g(["voiture"]).toLowerCase()) >= 0, active: true };
+      return { id: Date.now() + i, name: name, role: rl, operators: [op], permis: ["oui", "yes", "1", "true", "x"].indexOf(g(["permis"]).toLowerCase()) >= 0, voiture: ["oui", "yes", "1", "true", "x"].indexOf(g(["voiture"]).toLowerCase()) >= 0, active: true };
     }).filter(Boolean);
     if (nm.length) { saveTeam(nm); addLog(nm.length + " importes!", "success"); } else { addLog("Aucun valide", "error"); }
   } else if (isContract) {
