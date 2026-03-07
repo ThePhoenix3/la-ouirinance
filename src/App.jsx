@@ -1227,6 +1227,19 @@ function carnetToContracts(rows) {
     var code = 'vst-' + parts[0][0].toLowerCase() + parts[parts.length - 1].toLowerCase();
     vstMap[code] = m.name;
   });
+  // Manual overrides where system login doesn't match the naming pattern
+  Object.assign(vstMap, {
+    'vst-lmertz':              'Leo Merde',
+    'vst-hnouar':              'Abdel Nouar',
+    'vst-dbelkessa':           'Lyna Belkessa',
+    'vst-adahmani':            'Hamid Atroune',
+    'vst-bouchrif':            'Abdellah Cheikh',
+    'vst-dclavereuil':         'Djany Legrand',
+    'vst-dpouilly':            'Nora Wahid',
+    'vst-droode':              'Paul Geriltault',
+    'vst-eluc':                'William Goujon',
+    'vst-kelahmadi':           'Ouissem Ouirini',
+  });
 
   function cleanBox(box) {
     if (!box) return '';
