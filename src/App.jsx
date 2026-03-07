@@ -1776,7 +1776,7 @@ return (
         }
         return Object.assign({}, g, updates);
       }
-      return Object.assign({}, g, { memberIds: g.memberIds.filter(function(id) { return id !== mid; }) });
+      return g;
     }));
   }
 
