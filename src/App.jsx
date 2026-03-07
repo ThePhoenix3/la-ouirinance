@@ -1579,7 +1579,7 @@ return (
 
   <main style={{ padding: "28px 32px", maxWidth: 1100, margin: "0 auto" }} className="tab-content" key={tab}>
     {tab === "dashboard" && <DashboardTab team={team} contracts={contracts} dailyPlan={dailyPlan} lastSync={lastSync} scraperStatus={scraperStatus} />}
-    {tab === "team" && <TeamTab team={team} saveTeam={saveTeam} />}
+    {tab === "team" && <TeamTab team={team} saveTeam={saveTeam} contracts={contracts} />}
     {tab === "cars" && <CarsTab team={team} cars={cars} saveCars={saveCars} dailyPlan={dailyPlan} saveDailyPlan={saveDailyPlan} />}
     {tab === "contracts" && <ContractsTab contracts={contracts} team={team} dailyPlan={dailyPlan} saveContracts={saveContracts} />}
     {tab === "map" && <MapTab dailyPlan={dailyPlan} team={team} cars={cars} />}
@@ -1671,11 +1671,12 @@ return (
 }
 
 // TEAM
-function TeamTab({ team, saveTeam }) {
+function TeamTab({ team, saveTeam, contracts }) {
 const [mo, setMo] = useState(false);
 const [em, setEm] = useState(null);
 const [f, setF] = useState({ name: "", role: "Debutant", operator: "Bouygues", permis: false, voiture: false });
 const [fl, setFl] = useState("");
+const [vue, setVue] = useState("liste");
 
 function openAdd() { setEm(null); setF({ name: "", role: "Debutant", operator: "Bouygues", permis: false, voiture: false }); setMo(true); }
 function openEdit(m) { setEm(m); setF({ name: m.name, role: m.role, operator: m.operator, permis: m.permis, voiture: m.voiture }); setMo(true); }
@@ -1686,53 +1687,105 @@ else { saveTeam([...team, { id: Date.now(), ...f, active: true }]); }
 setMo(false);
 }
 
-return (
+var roleOrder = { "Manager": 0, "Assistant Manager": 1, "Formateur": 2, "Confirme": 3, "Debutant": 4 };
 
+// Weekly contracts per person
+var weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().split("T")[0];
+var weekContracts = (contracts || []).filter(function(c) { return c.date >= weekAgo; });
+var weekByName = {};
+weekContracts.forEach(function(c) { weekByName[c.commercial] = (weekByName[c.commercial] || 0) + 1; });
+
+function MemberCard({ m, onClick, showWeek }) {
+  var w = weekByName[m.name] || 0;
+  return (
+    <Card style={{ padding: 14, opacity: m.active ? 1 : 0.5, cursor: onClick ? "pointer" : "default" }} onClick={onClick}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ width: 38, height: 38, borderRadius: 10, background: ROLE_COLORS[m.role] + "18", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 700, color: ROLE_COLORS[m.role] }}>{m.name[0]}</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "#1D1D1F", letterSpacing: -0.2 }}>{m.name}</div>
+          <div style={{ display: "flex", gap: 4, marginTop: 3, flexWrap: "wrap", alignItems: "center" }}>
+            <Badge color={ROLE_COLORS[m.role]}>{ROLE_LABELS[m.role]}</Badge>
+            {m.permis && <Badge color="#34C759">Permis</Badge>}
+            {m.voiture && <Badge color="#7C3AED">Voiture</Badge>}
+            {!m.active && <Badge color="#FF3B30">Inactif</Badge>}
+          </div>
+        </div>
+        {showWeek && <div style={{ fontSize: 18, fontWeight: 700, color: w > 0 ? "#0071E3" : "#AEAEB2", minWidth: 28, textAlign: "right" }}>{w}</div>}
+      </div>
+    </Card>
+  );
+}
+
+return (
 <div>
 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 10 }}>
-<div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-<Btn s="sm" v={!fl ? "primary" : "secondary"} onClick={function() { setFl(""); }}>Tous ({team.length})</Btn>
-{ROLES.map(function(r) {
-var count = team.filter(function(m) { return m.role === r; }).length;
-if (!count) return null;
-return <Btn key={r} s="sm" v={fl === r ? "primary" : "secondary"} onClick={function() { setFl(r); }}>{r} ({count})</Btn>;
-})}
-</div>
-<Btn onClick={openAdd}>+ Ajouter</Btn>
+  <div style={{ display: "flex", gap: 6 }}>
+    <Btn s="sm" v={vue === "liste" ? "primary" : "secondary"} onClick={function() { setVue("liste"); }}>Liste ({team.length})</Btn>
+    <Btn s="sm" v={vue === "orga" ? "primary" : "secondary"} onClick={function() { setVue("orga"); }}>Organigramme</Btn>
+  </div>
+  <div style={{ display: "flex", gap: 6 }}>
+    {vue === "liste" && ROLES.map(function(r) {
+      var count = team.filter(function(m) { return m.role === r; }).length;
+      if (!count) return null;
+      return <Btn key={r} s="sm" v={fl === r ? "primary" : "secondary"} onClick={function() { setFl(fl === r ? "" : r); }}>{r} ({count})</Btn>;
+    })}
+    <Btn onClick={openAdd}>+ Ajouter</Btn>
+  </div>
 </div>
 
-{ROLES.map(function(role) {
-var members = team.filter(function(m) { return m.role === role && (!fl || m.role === fl); });
-if (!members.length) return null;
-return (
-<div key={role} style={{ marginBottom: 24 }}>
-<div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-<div style={{ width: 4, height: 20, borderRadius: 2, background: ROLE_COLORS[role] }} />
-<h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: ROLE_COLORS[role] }}>{role}s ({members.length})</h3>
-</div>
-<div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 10 }}>
-{members.map(function(m) {
-return (
-<Card key={m.id} style={{ padding: 14, opacity: m.active ? 1 : 0.5, cursor: "pointer" }} onClick={function() { openEdit(m); }}>
-<div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-<div style={{ width: 38, height: 38, borderRadius: 10, background: ROLE_COLORS[m.role] + "18", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 700, color: ROLE_COLORS[m.role] }}>{m.name[0]}</div>
-<div style={{ flex: 1 }}>
-<div style={{ fontSize: 14, fontWeight: 500, color: "#1D1D1F", letterSpacing: -0.2 }}>{m.name}</div>
-<div style={{ display: "flex", gap: 4, marginTop: 3, flexWrap: "wrap" }}>
-<Badge color={OP_COLORS[m.operator]}>{m.operator}</Badge>
-{m.permis && <Badge color="#34C759">Permis</Badge>}
-{m.voiture && <Badge color="#7C3AED">Voiture</Badge>}
-{!m.active && <Badge color="#FF3B30">Inactif</Badge>}
-</div>
-</div>
-</div>
-</Card>
-);
+{vue === "liste" && ROLES.map(function(role) {
+  var members = team.filter(function(m) { return m.role === role && (!fl || m.role === fl); });
+  if (!members.length) return null;
+  return (
+    <div key={role} style={{ marginBottom: 24 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+        <div style={{ width: 4, height: 20, borderRadius: 2, background: ROLE_COLORS[role] }} />
+        <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: ROLE_COLORS[role] }}>{role}s ({members.length})</h3>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 10 }}>
+        {members.map(function(m) { return <MemberCard key={m.id} m={m} onClick={function() { openEdit(m); }} showWeek={true} />; })}
+      </div>
+    </div>
+  );
 })}
-</div>
-</div>
-);
-})}
+
+{vue === "orga" && (function() {
+  var groups = Object.entries(VTA_GROUPS).map(function(entry) {
+    var vtaCode = entry[0]; var names = entry[1];
+    var members = names.map(function(name) {
+      return team.find(function(m) { return m.name === name; }) || { id: name, name: name, role: "Debutant", active: true, operator: "Free", permis: false, voiture: false };
+    }).sort(function(a, b) { return roleOrder[a.role] - roleOrder[b.role]; });
+    var label = vtaCode.replace("vta-", "");
+    label = label.charAt(0).toUpperCase() + label.slice(1);
+    return { vtaCode: vtaCode, label: label, leader: members[0], members: members.slice(1) };
+  });
+
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 20 }}>
+      {groups.map(function(g) {
+        return (
+          <div key={g.vtaCode} style={{ background: "#F5F5F7", borderRadius: 16, padding: 16 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#AEAEB2", letterSpacing: 1, textTransform: "uppercase", marginBottom: 10 }}>Équipe {g.label}</div>
+            {/* Leader */}
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: "#0071E3", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 4 }}>Référent</div>
+              <MemberCard m={g.leader} onClick={function() { openEdit(g.leader); }} showWeek={true} />
+            </div>
+            {/* Members */}
+            {g.members.length > 0 && (
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 600, color: "#6E6E73", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 4, marginTop: 8 }}>Commerciaux ({g.members.length})</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {g.members.map(function(m) { return <MemberCard key={m.id || m.name} m={m} onClick={function() { openEdit(m); }} showWeek={true} />; })}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+})()}
 
 <Modal open={mo} onClose={function() { setMo(false); }} title={em ? "Modifier" : "Ajouter"}>
 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
