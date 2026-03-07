@@ -1220,13 +1220,83 @@ return [
 {id:"vta-876579",commercial:"Abdellah Cheikh",vtaCode:"vta-zourhalm",vtaResolved:false,date:"2026-01-12",heure:"11:31",ville:"Niort",rue:"26 RUE MAURICE CHEVALIER",operator:"Free",type:"Fibre",status:"Valide"}
 ];
 }
-const DEMO_CONTRACTS = makeDemoContracts().concat(makeVTAContracts());
+function carnetToContracts(rows) {
+  var vstMap = {};
+  DEMO_TEAM.forEach(function(m) {
+    var parts = m.name.split(' ');
+    var code = 'vst-' + parts[0][0].toLowerCase() + parts[parts.length - 1].toLowerCase();
+    vstMap[code] = m.name;
+  });
+
+  function cleanBox(box) {
+    if (!box) return '';
+    if (box.indexOf('ULTRA_LIGHT') === 0) return 'ULTRA_LIGHT';
+    if (box.indexOf('ULTRA') === 0) return 'ULTRA';
+    if (box.indexOf('POP') === 0) return 'POP';
+    return box;
+  }
+
+  var statusMap = {
+    'inscription ok': 'En attente RDV',
+    'inscription ok /postprod': 'En attente RDV',
+    'vente valid\u00e9e': 'RDV pris',
+    'vente valid\u00e9e j+7': 'RDV pris J+7',
+    'connexion ok': 'Branch\u00e9',
+    'connexion ok vrf': 'Branch\u00e9 VRF',
+    'r\u00e9sili\u00e9': 'R\u00e9sili\u00e9',
+    'vente abandon\u00e9e': 'Annul\u00e9',
+  };
+
+  return rows.map(function(r) {
+    var login = (r.login || '').trim();
+    var dt = (r.date_inscription || '').split(' ');
+    var date = dt[0] || '';
+    var heure = dt[1] ? dt[1].substring(0, 5) : '';
+    var status = statusMap[(r.etat_commande || '').toLowerCase()] || r.etat_commande || '';
+    var box = cleanBox(r.box || '');
+    var ville = (r.ville || '').trim();
+
+    if (login.startsWith('vta-')) {
+      var group = VTA_GROUPS[login];
+      var commercial = group ? group[0] : login;
+      return {
+        id: 'vta-' + r.id_abo,
+        commercial: commercial,
+        vtaCode: login,
+        vtaResolved: false,
+        date: date,
+        heure: heure,
+        ville: ville,
+        rue: r.adresse || '',
+        operator: 'Free',
+        type: 'Fibre',
+        box: box,
+        status: status || 'Valide',
+      };
+    } else {
+      return {
+        id: 'f-' + r.id_abo,
+        commercial: vstMap[login] || login,
+        date: date,
+        heure: heure,
+        ville: ville,
+        rue: r.adresse || '',
+        operator: 'Free',
+        type: 'Fibre',
+        box: box,
+        status: status,
+      };
+    }
+  });
+}
+
+const DEMO_CONTRACTS = carnetData.length > 0 ? carnetToContracts(carnetData) : makeDemoContracts().concat(makeVTAContracts());
 
 // STATUS COLORS
 function statusColor(status) {
-if (status === "Branche") return "#32CD32";
-if (status === "RDV pris") return "#808000";
-if (status === "Annule") return "#B22222";
+if (status === "Branché" || status === "Branché VRF" || status === "Branche") return "#32CD32";
+if (status === "RDV pris" || status === "RDV pris J+7" || status === "Valide") return "#808000";
+if (status === "Résilié" || status === "Annulé" || status === "Annule") return "#B22222";
 return "#D97706"; // En attente RDV
 }
 
