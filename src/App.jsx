@@ -1969,12 +1969,20 @@ function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups }) {
 
   var at = team.filter(function(m) { return m.active; });
 
-  // Build set of all occupied member ids (drivers + passengers)
-  var inCar = new Set();
+  // Passengers first: all members explicitly added to a car
+  var passengerIds = new Set();
   cars.forEach(function(car) {
-    if (car.driverId) inCar.add(car.driverId);
     var cp = plan[car.id];
-    if (cp && cp.members) cp.members.forEach(function(id) { inCar.add(id); });
+    if (cp && cp.members) cp.members.forEach(function(id) { passengerIds.add(id); });
+  });
+
+  // A car is inactive today if its driver is riding as passenger in another car
+  function isCarInactive(car) { return car.driverId ? passengerIds.has(car.driverId) : false; }
+
+  // inCar = passengers + drivers of ACTIVE cars only
+  var inCar = new Set(passengerIds);
+  cars.forEach(function(car) {
+    if (car.driverId && !isCarInactive(car)) inCar.add(car.driverId);
   });
   var unassigned = at.filter(function(m) { return !inCar.has(m.id); });
 
@@ -2150,8 +2158,14 @@ function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups }) {
         <PickerModal
           car={pickerCar}
           available={at.filter(function(m) {
+            // Not the driver of this car
             if (pickerCar.driverId === m.id) return false;
-            return !inCar.has(m.id);
+            // Not already a passenger in this car
+            var cp = plan[pickerCar.id];
+            if (cp && cp.members && cp.members.indexOf(m.id) >= 0) return false;
+            // Not already a passenger in another car
+            if (passengerIds.has(m.id)) return false;
+            return true;
           })}
           onClose={function() { setPicker(null); }}
         />
@@ -2177,13 +2191,20 @@ function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups }) {
           var maxPass = car.seats - (driver ? 1 : 0);
           var canAdd = passengers.length < maxPass;
           var isDrop = dropTarget === car.id;
+          var inactive = isCarInactive(car);
+
+          // Find which car the driver is riding in today
+          var driverRidingIn = inactive && driver ? cars.find(function(c) {
+            var cp2 = plan[c.id];
+            return cp2 && cp2.members && cp2.members.indexOf(car.driverId) >= 0;
+          }) : null;
 
           return (
             <div key={car.id}
-              style={{ background: isDrop ? accent + "07" : "#FAFAFA", borderRadius: 18, border: isDrop ? "2px solid " + accent + "55" : "1px solid #E5E5EA", overflow: "hidden", transition: "background 0.15s, border-color 0.15s" }}
-              onDragOver={function(e) { e.preventDefault(); setDropTarget(car.id); }}
-              onDragLeave={function(e) { if (!e.currentTarget.contains(e.relatedTarget)) setDropTarget(null); }}
-              onDrop={function(e) {
+              style={{ background: inactive ? "#F5F5F7" : isDrop ? accent + "07" : "#FAFAFA", borderRadius: 18, border: inactive ? "1px solid #E5E5EA" : isDrop ? "2px solid " + accent + "55" : "1px solid #E5E5EA", overflow: "hidden", transition: "background 0.15s, border-color 0.15s", opacity: inactive ? 0.6 : 1 }}
+              onDragOver={inactive ? undefined : function(e) { e.preventDefault(); setDropTarget(car.id); }}
+              onDragLeave={inactive ? undefined : function(e) { if (!e.currentTarget.contains(e.relatedTarget)) setDropTarget(null); }}
+              onDrop={inactive ? undefined : function(e) {
                 e.preventDefault(); setDropTarget(null);
                 if (!dragging) return;
                 if (dragging.fromCarId === car.id) return;
@@ -2194,20 +2215,27 @@ function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups }) {
               }}>
 
               {/* Header */}
-              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 18px", borderBottom: "1px solid #F0F0F0", background: accent + "08", flexWrap: "wrap" }}>
-                <div style={{ width: 10, height: 10, borderRadius: 99, background: accent, flexShrink: 0 }} />
-                <span style={{ fontSize: 14, fontWeight: 700, color: "#1D1D1F", letterSpacing: -0.3, flex: 1 }}>{car.name}</span>
-                <span style={{ fontSize: 12, color: "#AEAEB2", fontWeight: 500 }}>{passengers.length + (driver ? 1 : 0)}/{car.seats}</span>
-                <input value={cp.sector || ""} onChange={function(e) { setSector(car.id, e.target.value); }} placeholder="Secteur..." style={{ fontSize: 11, padding: "3px 8px", borderRadius: 8, border: "1px solid #E5E5EA", outline: "none", width: 100, color: "#1D1D1F", background: "#fff", fontFamily: "inherit" }} />
-                <div style={{ display: "flex", borderRadius: 8, overflow: "hidden", border: "1px solid #E5E5EA" }}>
-                  <button onClick={function() { setZoneType(car.id, "stratygo"); }} style={{ padding: "3px 8px", fontSize: 10, fontWeight: 700, border: "none", cursor: "pointer", background: cp.zoneType !== "talc" ? "#1D1D1F" : "#F5F5F7", color: cp.zoneType !== "talc" ? "#fff" : "#AEAEB2", fontFamily: "inherit" }}>Stratygo</button>
-                  <button onClick={function() { setZoneType(car.id, "talc"); }} style={{ padding: "3px 8px", fontSize: 10, fontWeight: 700, border: "none", cursor: "pointer", background: cp.zoneType === "talc" ? "#FF3B30" : "#F5F5F7", color: cp.zoneType === "talc" ? "#fff" : "#AEAEB2", fontFamily: "inherit" }}>TALC</button>
-                </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 18px", borderBottom: "1px solid #F0F0F0", background: inactive ? "#EEEEEF" : accent + "08", flexWrap: "wrap" }}>
+                <div style={{ width: 10, height: 10, borderRadius: 99, background: inactive ? "#AEAEB2" : accent, flexShrink: 0 }} />
+                <span style={{ fontSize: 14, fontWeight: 700, color: inactive ? "#AEAEB2" : "#1D1D1F", letterSpacing: -0.3, flex: 1 }}>{car.name}</span>
+                {inactive
+                  ? <span style={{ fontSize: 11, fontWeight: 600, color: "#AEAEB2", background: "#E5E5EA", padding: "2px 8px", borderRadius: 99 }}>
+                      {driver ? driver.name.split(' ')[0] : "Conducteur"} est en voiture avec {driverRidingIn ? driverRidingIn.name.replace("Voiture de ", "").replace("Voiture d'", "") : "quelqu'un"}
+                    </span>
+                  : <>
+                      <span style={{ fontSize: 12, color: "#AEAEB2", fontWeight: 500 }}>{passengers.length + (driver ? 1 : 0)}/{car.seats}</span>
+                      <input value={cp.sector || ""} onChange={function(e) { setSector(car.id, e.target.value); }} placeholder="Secteur..." style={{ fontSize: 11, padding: "3px 8px", borderRadius: 8, border: "1px solid #E5E5EA", outline: "none", width: 100, color: "#1D1D1F", background: "#fff", fontFamily: "inherit" }} />
+                      <div style={{ display: "flex", borderRadius: 8, overflow: "hidden", border: "1px solid #E5E5EA" }}>
+                        <button onClick={function() { setZoneType(car.id, "stratygo"); }} style={{ padding: "3px 8px", fontSize: 10, fontWeight: 700, border: "none", cursor: "pointer", background: cp.zoneType !== "talc" ? "#1D1D1F" : "#F5F5F7", color: cp.zoneType !== "talc" ? "#fff" : "#AEAEB2", fontFamily: "inherit" }}>Stratygo</button>
+                        <button onClick={function() { setZoneType(car.id, "talc"); }} style={{ padding: "3px 8px", fontSize: 10, fontWeight: 700, border: "none", cursor: "pointer", background: cp.zoneType === "talc" ? "#FF3B30" : "#F5F5F7", color: cp.zoneType === "talc" ? "#fff" : "#AEAEB2", fontFamily: "inherit" }}>TALC</button>
+                      </div>
+                    </>
+                }
                 <button onClick={function() { setEc(car); setCf({ name: car.name, seats: car.seats, driverId: car.driverId || null }); setMo(true); }} style={{ background: "#F0F0F0", border: "none", cursor: "pointer", fontSize: 11, color: "#6E6E73", padding: "3px 8px", borderRadius: 6, fontFamily: "inherit" }}>Éditer</button>
               </div>
 
-              {/* Body: horizontal layout */}
-              <div style={{ padding: "16px 18px", display: "flex", alignItems: "flex-start", gap: 0 }}>
+              {/* Body: horizontal layout — only if active */}
+              {!inactive && <div style={{ padding: "16px 18px", display: "flex", alignItems: "flex-start", gap: 0 }}>
                 {/* Driver */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-start", flexShrink: 0 }}>
                   <span style={{ fontSize: 10, fontWeight: 700, color: accent, letterSpacing: 0.8, textTransform: "uppercase" }}>Conducteur</span>
@@ -2240,10 +2268,10 @@ function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups }) {
                     )}
                   </div>
                 </div>
-              </div>
+              </div>}
 
               {/* TALC: show summary of codes in car */}
-              {cp.zoneType === "talc" && (driver || passengers.length > 0) && (
+              {!inactive && cp.zoneType === "talc" && (driver || passengers.length > 0) && (
                 <div style={{ padding: "0 18px 14px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <span style={{ fontSize: 11, color: "#AEAEB2", fontWeight: 600 }}>Codes VTA :</span>
                   {[driver, ...passengers].filter(Boolean).map(function(m) {
