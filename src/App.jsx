@@ -1449,7 +1449,17 @@ var mergedContracts = DEMO_CONTRACTS.map(function(c) {
 setContracts(mergedContracts);
 setDailyPlan(await store.get(STORAGE_KEYS.dailyPlan) || null);
 setObjectives(await store.get(STORAGE_KEYS.objectives) || {});
-setGroups(await store.get(STORAGE_KEYS.groups) || []);
+var loadedTeam = await store.get(STORAGE_KEYS.team) || DEMO_TEAM;
+var loadedGroups = await store.get(STORAGE_KEYS.groups) || [];
+var renamedGroups = loadedGroups.map(function(g) {
+  if (g.memberIds.length > 0) {
+    var leader = loadedTeam.find(function(m) { return m.id === g.memberIds[0]; });
+    if (leader) return Object.assign({}, g, { name: "Équipe de " + leader.name.split(' ')[0] });
+  }
+  return g;
+});
+store.set(STORAGE_KEYS.groups, renamedGroups);
+setGroups(renamedGroups);
 setLoading(false);
 })();
 }, []);
