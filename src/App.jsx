@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import carnetData from "./data.json";
 
-const STORAGE_KEYS = { team: "agency-team-v3", cars: "agency-cars-v3", contracts: "agency-contracts-v3", dailyPlan: "agency-daily-plan-v3", objectives: "agency-objectives-v3", groups: "agency-groups-v1" };
+const STORAGE_KEYS = { team: "agency-team-v3", cars: "agency-cars-v4", contracts: "agency-contracts-v3", dailyPlan: "agency-daily-plan-v4", objectives: "agency-objectives-v3", groups: "agency-groups-v1" };
 
 // Table VTA : code -> personnes assignees (principal en premier)
 const VTA_GROUPS = {
@@ -159,12 +159,13 @@ const DEMO_TEAM = [
 ];
 
 const DEMO_CARS = [
-{ id: 1, name: "Voiture 1 - Clio", seats: 5, owner: "Agence" },
-{ id: 2, name: "Voiture 2 - 208", seats: 5, owner: "Agence" },
-{ id: 3, name: "Voiture 3 - C3", seats: 5, owner: "Agence" },
-{ id: 4, name: "Voiture 4 - Polo", seats: 5, owner: "Agence" },
-{ id: 5, name: "Voiture 5 - Ibiza", seats: 5, owner: "Agence" },
-{ id: 6, name: "Voiture 6 - Corsa", seats: 5, owner: "Agence" },
+{ id: 1, name: "Voiture de Léo", seats: 5, owner: "Leo Merde", driverId: 2 },
+{ id: 2, name: "Voiture de Hamid", seats: 5, owner: "Hamid Atroune", driverId: 12 },
+{ id: 3, name: "Voiture d'Abdellah", seats: 5, owner: "Abdellah Cheikh", driverId: 18 },
+{ id: 4, name: "Voiture de Djany", seats: 5, owner: "Djany Legrand", driverId: 1 },
+{ id: 5, name: "Voiture de Stéphane", seats: 5, owner: "Stephane Legrand", driverId: 3 },
+{ id: 6, name: "Voiture de Sandra", seats: 5, owner: "Sandra Pereira", driverId: 4 },
+{ id: 7, name: "Voiture d'Ouissem", seats: 5, owner: "Ouissem Ouirini", driverId: 21 },
 ];
 
 function makeDemoContracts() {
@@ -1593,7 +1594,7 @@ return (
   <main style={{ padding: "28px 32px", maxWidth: 1100, margin: "0 auto" }} className="tab-content" key={tab}>
     {tab === "dashboard" && <DashboardTab team={team} contracts={contracts} dailyPlan={dailyPlan} lastSync={lastSync} scraperStatus={scraperStatus} />}
     {tab === "team" && <TeamTab team={team} saveTeam={saveTeam} contracts={contracts} groups={groups} saveGroups={saveGroups} />}
-    {tab === "cars" && <CarsTab team={team} cars={cars} saveCars={saveCars} dailyPlan={dailyPlan} saveDailyPlan={saveDailyPlan} />}
+    {tab === "cars" && <CarsTab team={team} cars={cars} saveCars={saveCars} dailyPlan={dailyPlan} saveDailyPlan={saveDailyPlan} groups={groups} />}
     {tab === "contracts" && <ContractsTab contracts={contracts} team={team} dailyPlan={dailyPlan} saveContracts={saveContracts} />}
     {tab === "map" && <MapTab dailyPlan={dailyPlan} team={team} cars={cars} />}
     {tab === "objectifs" && <ObjectifsTab team={team} contracts={contracts} objectives={objectives} saveObjectives={saveObjectives} />}
@@ -1956,130 +1957,338 @@ return (
 }
 
 // CARS
-function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan }) {
-const [mo, setMo] = useState(false);
-const [cf, setCf] = useState({ name: "", seats: 5, owner: "Agence" });
-const [plan, setPlan] = useState(dailyPlan || {});
-const [ec, setEc] = useState(null);
+function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups }) {
+  var CAR_PALETTE = ["#0071E3","#34C759","#FF9F0A","#AF52DE","#FF2D55","#5AC8FA","#FF6B35","#00B4D8"];
+  const [plan, setPlan] = useState(dailyPlan || {});
+  const [dragging, setDragging] = useState(null); // { memberId, fromCarId }
+  const [dropTarget, setDropTarget] = useState(null); // carId or "pool"
+  const [picker, setPicker] = useState(null); // carId
+  const [mo, setMo] = useState(false);
+  const [ec, setEc] = useState(null);
+  const [cf, setCf] = useState({ name: "", seats: 5, driverId: null });
 
-var at = team.filter(function(m) { return m.active && m.role !== "Manager"; });
-var assigned = new Set();
-Object.values(plan).forEach(function(cp) { if (cp && cp.members) cp.members.forEach(function(id) { assigned.add(id); }); });
-var unasgn = at.filter(function(m) { return !assigned.has(m.id); });
+  var at = team.filter(function(m) { return m.active; });
 
-function autoAssign() {
-var np = {};
-var used = new Set();
-cars.forEach(function(car) {
-np[car.id] = { members: [], sector: "" };
-var fd = at.find(function(m) { return !used.has(m.id) && (m.role === "Formateur" || m.role === "Assistant Manager") && m.permis; });
-if (fd) { np[car.id].members.push(fd.id); used.add(fd.id); }
-else {
-var af = at.find(function(m) { return !used.has(m.id) && (m.role === "Formateur" || m.role === "Assistant Manager"); });
-if (af) { np[car.id].members.push(af.id); used.add(af.id); }
-var ad = at.find(function(m) { return !used.has(m.id) && m.permis; });
-if (ad) { np[car.id].members.push(ad.id); used.add(ad.id); }
-}
-});
-var rem = at.filter(function(m) { return !used.has(m.id); });
-var ci = 0;
-rem.forEach(function(m) { var tid = cars[ci % cars.length]; if (tid && np[tid.id].members.length < 5) np[tid.id].members.push(m.id); ci++; });
-setPlan(np);
-saveDailyPlan(np);
-}
+  // Build set of all occupied member ids (drivers + passengers)
+  var inCar = new Set();
+  cars.forEach(function(car) {
+    if (car.driverId) inCar.add(car.driverId);
+    var cp = plan[car.id];
+    if (cp && cp.members) cp.members.forEach(function(id) { inCar.add(id); });
+  });
+  var unassigned = at.filter(function(m) { return !inCar.has(m.id); });
 
-function addM(cid, mid) { var u = JSON.parse(JSON.stringify(plan)); if (!u[cid]) u[cid] = { members: [], sector: "" }; if (u[cid].members.indexOf(mid) === -1) u[cid].members.push(mid); setPlan(u); saveDailyPlan(u); }
-function rmM(cid, mid) { var u = JSON.parse(JSON.stringify(plan)); u[cid].members = u[cid].members.filter(function(i) { return i !== mid; }); setPlan(u); saveDailyPlan(u); }
-function setSector(cid, s) { var u = JSON.parse(JSON.stringify(plan)); if (!u[cid]) u[cid] = { members: [], sector: "", zoneType: "stratygo", vtaCode: "" }; u[cid].sector = s; setPlan(u); saveDailyPlan(u); }
-function setZoneType(cid, z) { var u = JSON.parse(JSON.stringify(plan)); if (!u[cid]) u[cid] = { members: [], sector: "", zoneType: "stratygo", vtaCode: "" }; u[cid].zoneType = z; if (z === "stratygo") u[cid].vtaCode = ""; setPlan(u); saveDailyPlan(u); }
-function setVtaCode(cid, v) { var u = JSON.parse(JSON.stringify(plan)); if (!u[cid]) u[cid] = { members: [], sector: "", zoneType: "talc", vtaCode: "" }; u[cid].vtaCode = v; setPlan(u); saveDailyPlan(u); }
+  function updatePlan(np) { setPlan(np); saveDailyPlan(np); }
 
-function saveCar() {
-if (!cf.name.trim()) return;
-if (ec) saveCars(cars.map(function(c) { return c.id === ec.id ? Object.assign({}, c, cf) : c; }));
-else saveCars([...cars, { id: Date.now(), ...cf }]);
-setMo(false); setEc(null);
-}
+  function addPassenger(cid, mid) {
+    var u = JSON.parse(JSON.stringify(plan));
+    if (!u[cid]) u[cid] = { members: [], sector: "", zoneType: "stratygo", vtaCode: "" };
+    if (u[cid].members.indexOf(mid) < 0) u[cid].members.push(mid);
+    updatePlan(u);
+  }
 
-return (
+  function removePassenger(cid, mid) {
+    var u = JSON.parse(JSON.stringify(plan));
+    if (!u[cid]) return;
+    u[cid].members = u[cid].members.filter(function(i) { return i !== mid; });
+    updatePlan(u);
+  }
 
-<div>
-<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 10 }}>
-<div><h2 style={{ margin: 0, fontSize: 17, fontWeight: 600, letterSpacing: -0.4, color: "#1D1D1F" }}>Voitures</h2><p style={{ margin: "4px 0 0", fontSize: 12, color: "#6E6E73" }}>{unasgn.length} non assignés</p></div>
-<div style={{ display: "flex", gap: 8 }}><Btn v="secondary" onClick={autoAssign}>Auto-repartir</Btn><Btn onClick={function() { setEc(null); setCf({ name: "", seats: 5, owner: "Agence" }); setMo(true); }}>+ Voiture</Btn></div>
-</div>
-<div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 16 }}>
-{cars.map(function(car) {
-var cp = plan[car.id] || { members: [], sector: "" };
-var cm = cp.members.map(function(id) { return team.find(function(m) { return m.id === id; }); }).filter(Boolean);
-var hasF = cm.some(function(m) { return m.role === "Formateur" || m.role === "Assistant Manager"; });
-var hasD = cm.some(function(m) { return m.permis; });
-return (
-<Card key={car.id} style={{ padding: 18 }}>
-<div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-<div><div style={{ fontSize: 14, fontWeight: 600, letterSpacing: -0.3, color: "#1D1D1F" }}>{car.name}</div><div style={{ fontSize: 12, color: "#AEAEB2" }}>{car.seats}pl</div></div>
-<div style={{ display: "flex", gap: 4 }}>
-{!hasF && cm.length > 0 && <span style={{ background: "#FFF4E0", borderRadius: 8, padding: "2px 8px", fontSize: 11, color: "#9A5200", fontWeight: 600 }}>! Form.</span>}
-{!hasD && cm.length > 0 && <span style={{ background: "#FFEDEC", borderRadius: 99, padding: "2px 8px", fontSize: 11, color: "#FF3B30", fontWeight: 600 }}>! Cond.</span>}
-<button onClick={function() { setEc(car); setCf({ name: car.name, seats: car.seats, owner: car.owner }); setMo(true); }} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12 }}>Edit</button>
-</div>
-</div>
-<Inp value={cp.sector} onChange={function(v) { setSector(car.id, v); }} placeholder="Secteur / Ville" style={{ marginBottom: 8, fontSize: 12 }} />
-<div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
-  <button onClick={function() { setZoneType(car.id, "stratygo"); }} style={{ flex: 1, padding: "5px 0", fontSize: 11, fontWeight: 700, borderRadius: 8, border: "none", cursor: "pointer", background: cp.zoneType === "talc" ? "#F5F5F7" : "#1D1D1F", color: cp.zoneType === "talc" ? "#AEAEB2" : "#fff" }}>Stratygo</button>
-  <button onClick={function() { setZoneType(car.id, "talc"); }} style={{ flex: 1, padding: "5px 0", fontSize: 11, fontWeight: 700, borderRadius: 8, border: "none", cursor: "pointer", background: cp.zoneType === "talc" ? "#FF3B30" : "#F5F5F7", color: cp.zoneType === "talc" ? "#fff" : "#AEAEB2" }}>TALC</button>
-</div>
-{cp.zoneType === "talc" && (
-  <Sel value={cp.vtaCode || ""} onChange={function(v) { setVtaCode(car.id, v); }} placeholder="Code VTA..."
-    options={Object.keys(VTA_GROUPS).map(function(k) { return { value: k, label: k + " (" + VTA_GROUPS[k][0] + "...)" }; })}
-    style={{ width: "100%", fontSize: 11, marginBottom: 8 }} />
-)}
-{cp.zoneType === "talc" && cp.vtaCode && (
-  <div style={{ fontSize: 11, color: "#6E6E73", marginBottom: 8, padding: "4px 8px", background: "#FFF4E0", borderRadius: 8 }}>
-    Groupe: {(VTA_GROUPS[cp.vtaCode] || []).join(", ")}
-  </div>
-)}
-<div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 10 }}>
-{cm.map(function(m) {
-return (
-<div key={m.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", background: "#FAFAFA", borderRadius: 8 }}>
-<div style={{ width: 26, height: 26, borderRadius: 6, fontSize: 11, fontWeight: 700, background: "#F5F5F7", color: "#6E6E73", display: "flex", alignItems: "center", justifyContent: "center" }}>{m.name[0]}</div>
-<div style={{ flex: 1 }}><span style={{ fontSize: 12, fontWeight: 600 }}>{m.name}</span><span style={{ fontSize: 11, color: "#AEAEB2", marginLeft: 6 }}>{m.role}</span></div>
-<Badge color={OP_COLORS[m.operator]}>{m.operator[0]}</Badge>
-{m.permis && <Badge color="#34C759">P</Badge>}
-<button onClick={function() { rmM(car.id, m.id); }} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14 }}>x</button>
-</div>
-);
-})}
-{cm.length === 0 && <div style={{ textAlign: "center", padding: 12, color: "#AEAEB2", fontSize: 12 }}>Vide</div>}
-</div>
-{cm.length < car.seats && unasgn.length > 0 && (
-<Sel value="" onChange={function(v) { addM(car.id, Number(v)); }} placeholder="+ Ajouter"
-options={unasgn.map(function(m) { return { value: m.id, label: m.name + " (" + m.role + ")" }; })} style={{ width: "100%", fontSize: 12 }} />
-)}
-<div style={{ marginTop: 8, fontSize: 11, color: "#AEAEB2", textAlign: "right" }}>{cm.length}/{car.seats}</div>
-</Card>
-);
-})}
-</div>
-{unasgn.length > 0 && (
-<Card style={{ marginTop: 20, background: "#FFF9F0" }}>
-<h4 style={{ margin: "0 0 10px", fontSize: 14, fontWeight: 700, color: "#9A5200" }}>Non assignés ({unasgn.length})</h4>
-<div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{unasgn.map(function(m) { return <Badge key={m.id} color={ROLE_COLORS[m.role]}>{m.name}</Badge>; })}</div>
-</Card>
-)}
-<Modal open={mo} onClose={function() { setMo(false); setEc(null); }} title={ec ? "Modifier" : "Ajouter voiture"}>
-<div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-<Inp value={cf.name} onChange={function(v) { setCf(Object.assign({}, cf, { name: v })); }} placeholder="Nom de la voiture" />
-<Inp type="number" value={cf.seats} onChange={function(v) { setCf(Object.assign({}, cf, { seats: Number(v) })); }} placeholder="Places" />
-<div style={{ display: "flex", gap: 10 }}>
-<Btn onClick={saveCar} style={{ flex: 1 }}>{ec ? "Enregistrer" : "Ajouter"}</Btn>
-{ec && <Btn v="danger" onClick={function() { saveCars(cars.filter(function(c) { return c.id !== ec.id; })); setMo(false); }}>Suppr</Btn>}
-</div>
-</div>
-</Modal>
-</div>
-);
+  function moveToPool(mid, fromCarId) {
+    var u = JSON.parse(JSON.stringify(plan));
+    if (fromCarId && u[fromCarId]) {
+      u[fromCarId].members = u[fromCarId].members.filter(function(i) { return i !== mid; });
+    }
+    updatePlan(u);
+  }
+
+  function movePassenger(mid, fromCarId, toCarId) {
+    var u = JSON.parse(JSON.stringify(plan));
+    if (fromCarId && u[fromCarId]) {
+      u[fromCarId].members = u[fromCarId].members.filter(function(i) { return i !== mid; });
+    }
+    if (!u[toCarId]) u[toCarId] = { members: [], sector: "", zoneType: "stratygo", vtaCode: "" };
+    if (u[toCarId].members.indexOf(mid) < 0) u[toCarId].members.push(mid);
+    updatePlan(u);
+  }
+
+  function setSector(cid, s) {
+    var u = JSON.parse(JSON.stringify(plan));
+    if (!u[cid]) u[cid] = { members: [], sector: "", zoneType: "stratygo", vtaCode: "" };
+    u[cid].sector = s; updatePlan(u);
+  }
+
+  function setZoneType(cid, z) {
+    var u = JSON.parse(JSON.stringify(plan));
+    if (!u[cid]) u[cid] = { members: [], sector: "", zoneType: "stratygo", vtaCode: "" };
+    u[cid].zoneType = z; if (z === "stratygo") u[cid].vtaCode = "";
+    updatePlan(u);
+  }
+
+  function setVtaCode(cid, v) {
+    var u = JSON.parse(JSON.stringify(plan));
+    if (!u[cid]) u[cid] = { members: [], sector: "", zoneType: "talc", vtaCode: "" };
+    u[cid].vtaCode = v; updatePlan(u);
+  }
+
+  function saveCar() {
+    if (!cf.name.trim()) return;
+    if (ec) saveCars(cars.map(function(c) { return c.id === ec.id ? Object.assign({}, c, cf) : c; }));
+    else saveCars([...cars, { id: Date.now(), ...cf }]);
+    setMo(false); setEc(null);
+  }
+
+  function resetDay() {
+    var np = {};
+    cars.forEach(function(car) {
+      var old = plan[car.id] || {};
+      np[car.id] = { members: [], sector: old.sector || "", zoneType: old.zoneType || "stratygo", vtaCode: old.vtaCode || "" };
+    });
+    updatePlan(np);
+  }
+
+  function initials(name) { var p = name.split(' '); return (p[0][0] + (p[p.length-1][0] || '')).toUpperCase(); }
+
+  function Avatar({ name, role, size }) {
+    var sz = size || 40;
+    return (
+      <div style={{ width: sz, height: sz, borderRadius: sz, background: ROLE_COLORS[role] + "22", border: "2px solid " + ROLE_COLORS[role] + "44", display: "flex", alignItems: "center", justifyContent: "center", fontSize: sz * 0.33, fontWeight: 700, color: ROLE_COLORS[role], flexShrink: 0 }}>
+        {initials(name)}
+      </div>
+    );
+  }
+
+  function MemberTile({ m, onRemove, isDriver, accent, isDrag, fromCarId }) {
+    var ops = Array.isArray(m.operators) ? m.operators : [m.operator].filter(Boolean);
+    return (
+      <div
+        draggable={isDrag}
+        onDragStart={isDrag ? function(e) { e.dataTransfer.effectAllowed = "move"; setDragging({ memberId: m.id, fromCarId: fromCarId }); } : undefined}
+        onDragEnd={function() { setDragging(null); setDropTarget(null); }}
+        style={{ background: "#fff", borderRadius: 14, padding: isDriver ? "14px 16px" : "10px 14px", boxShadow: "0 1px 4px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.04)", display: "flex", alignItems: "center", gap: 10, position: "relative", borderLeft: isDriver ? "3px solid " + accent : "none", minWidth: isDriver ? 185 : 155, opacity: dragging && dragging.memberId === m.id ? 0.45 : 1, cursor: isDrag ? "grab" : "default", transition: "opacity 0.15s", flexShrink: 0 }}>
+        <Avatar name={m.name} role={m.role} size={isDriver ? 44 : 36} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: isDriver ? 14 : 13, fontWeight: 600, color: "#1D1D1F", letterSpacing: -0.3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.name}</div>
+          <div style={{ display: "flex", gap: 4, marginTop: 3, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 10, fontWeight: 600, color: ROLE_COLORS[m.role], background: ROLE_COLORS[m.role] + "15", padding: "1px 6px", borderRadius: 99 }}>{ROLE_LABELS[m.role]}</span>
+            {ops.map(function(op) { return <span key={op} style={{ fontSize: 10, fontWeight: 600, color: OP_COLORS[op], background: OP_COLORS[op] + "18", padding: "1px 6px", borderRadius: 99 }}>{op}</span>; })}
+            {m.permis && <span style={{ fontSize: 10, fontWeight: 600, color: "#34C759", background: "#34C75915", padding: "1px 6px", borderRadius: 99 }}>Permis</span>}
+          </div>
+        </div>
+        {onRemove && <button onClick={onRemove} style={{ position: "absolute", top: 5, right: 5, background: "none", border: "none", cursor: "pointer", color: "#C7C7CC", fontSize: 16, lineHeight: 1, padding: 2 }}>×</button>}
+      </div>
+    );
+  }
+
+  function PickerModal({ car, available, onClose }) {
+    var [search, setSearch] = useState("");
+    var driver = car.driverId ? team.find(function(m) { return m.id === car.driverId; }) : null;
+    var driverOps = driver ? (Array.isArray(driver.operators) ? driver.operators : [driver.operator].filter(Boolean)) : [];
+    var driverGroup = groups ? groups.find(function(g) { return driver && g.memberIds.indexOf(car.driverId) >= 0; }) : null;
+
+    function score(m) {
+      var s = 0;
+      if (driverGroup && driverGroup.memberIds.indexOf(m.id) >= 0) s += 2;
+      var mOps = Array.isArray(m.operators) ? m.operators : [m.operator].filter(Boolean);
+      if (driverOps.some(function(op) { return mOps.indexOf(op) >= 0; })) s += 1;
+      return s;
+    }
+
+    var sorted = available.slice().sort(function(a, b) { return score(b) - score(a); });
+    var filtered = sorted.filter(function(m) { return m.name.toLowerCase().indexOf(search.toLowerCase()) >= 0; });
+
+    return (
+      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.3)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={onClose}>
+        <div style={{ background: "#fff", borderRadius: 20, padding: 24, width: 380, maxHeight: "72vh", display: "flex", flexDirection: "column", gap: 14, boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }} onClick={function(e) { e.stopPropagation(); }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: "#1D1D1F" }}>Ajouter dans {car.name}</div>
+          <input autoFocus value={search} onChange={function(e) { setSearch(e.target.value); }} placeholder="Rechercher..." style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid #E5E5EA", fontSize: 13, outline: "none", fontFamily: "inherit" }} />
+          <div style={{ overflowY: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
+            {filtered.length === 0 && <div style={{ color: "#AEAEB2", fontSize: 13, textAlign: "center", padding: 20 }}>Aucun membre disponible</div>}
+            {filtered.map(function(m) {
+              var s = score(m);
+              var ops = Array.isArray(m.operators) ? m.operators : [m.operator].filter(Boolean);
+              return (
+                <div key={m.id} onClick={function() { addPassenger(car.id, m.id); onClose(); }}
+                  style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 12, cursor: "pointer", background: s >= 2 ? "#F0FDF4" : s >= 1 ? "#EFF6FF" : "#F5F5F7", border: s >= 2 ? "1px solid #34C75928" : s >= 1 ? "1px solid #0071E328" : "1px solid transparent", transition: "filter 0.1s" }}
+                  onMouseEnter={function(e) { e.currentTarget.style.filter = "brightness(0.96)"; }}
+                  onMouseLeave={function(e) { e.currentTarget.style.filter = ""; }}>
+                  <Avatar name={m.name} role={m.role} size={36} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#1D1D1F" }}>{m.name}</div>
+                    <div style={{ display: "flex", gap: 4, marginTop: 2 }}>
+                      <span style={{ fontSize: 10, fontWeight: 600, color: ROLE_COLORS[m.role] }}>{ROLE_LABELS[m.role]}</span>
+                      {ops.map(function(op) { return <span key={op} style={{ fontSize: 10, color: OP_COLORS[op], fontWeight: 600 }}>{op}</span>; })}
+                    </div>
+                  </div>
+                  {s >= 2 && <span style={{ fontSize: 10, fontWeight: 700, color: "#34C759", background: "#F0FDF4", padding: "2px 7px", borderRadius: 99, flexShrink: 0 }}>Équipe</span>}
+                  {s === 1 && <span style={{ fontSize: 10, fontWeight: 700, color: "#0071E3", background: "#EFF6FF", padding: "2px 7px", borderRadius: 99, flexShrink: 0 }}>Opérateur</span>}
+                </div>
+              );
+            })}
+          </div>
+          <Btn v="secondary" onClick={onClose}>Fermer</Btn>
+        </div>
+      </div>
+    );
+  }
+
+  var pickerCar = picker ? cars.find(function(c) { return c.id === picker; }) : null;
+
+  return (
+    <div>
+      {pickerCar && (
+        <PickerModal
+          car={pickerCar}
+          available={at.filter(function(m) {
+            if (pickerCar.driverId === m.id) return false;
+            return !inCar.has(m.id);
+          })}
+          onClose={function() { setPicker(null); }}
+        />
+      )}
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 600, letterSpacing: -0.4, color: "#1D1D1F" }}>Voitures</h2>
+          <p style={{ margin: "4px 0 0", fontSize: 12, color: "#6E6E73" }}>{unassigned.length} non assignés · {cars.length} voitures</p>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Btn v="secondary" onClick={resetDay}>Réinitialiser la journée</Btn>
+          <Btn onClick={function() { setEc(null); setCf({ name: "", seats: 5, driverId: null }); setMo(true); }}>+ Voiture</Btn>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        {cars.map(function(car, ci) {
+          var accent = CAR_PALETTE[ci % CAR_PALETTE.length];
+          var cp = plan[car.id] || { members: [], sector: "", zoneType: "stratygo", vtaCode: "" };
+          var driver = car.driverId ? team.find(function(m) { return m.id === car.driverId; }) : null;
+          var passengers = (cp.members || []).map(function(id) { return team.find(function(m) { return m.id === id; }); }).filter(Boolean);
+          var maxPass = car.seats - (driver ? 1 : 0);
+          var canAdd = passengers.length < maxPass;
+          var isDrop = dropTarget === car.id;
+
+          return (
+            <div key={car.id}
+              style={{ background: isDrop ? accent + "07" : "#FAFAFA", borderRadius: 18, border: isDrop ? "2px solid " + accent + "55" : "1px solid #E5E5EA", overflow: "hidden", transition: "background 0.15s, border-color 0.15s" }}
+              onDragOver={function(e) { e.preventDefault(); setDropTarget(car.id); }}
+              onDragLeave={function(e) { if (!e.currentTarget.contains(e.relatedTarget)) setDropTarget(null); }}
+              onDrop={function(e) {
+                e.preventDefault(); setDropTarget(null);
+                if (!dragging) return;
+                if (dragging.fromCarId === car.id) return;
+                if (driver && dragging.memberId === car.driverId) return;
+                if (passengers.length >= maxPass) return;
+                movePassenger(dragging.memberId, dragging.fromCarId, car.id);
+                setDragging(null);
+              }}>
+
+              {/* Header */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 18px", borderBottom: "1px solid #F0F0F0", background: accent + "08", flexWrap: "wrap" }}>
+                <div style={{ width: 10, height: 10, borderRadius: 99, background: accent, flexShrink: 0 }} />
+                <span style={{ fontSize: 14, fontWeight: 700, color: "#1D1D1F", letterSpacing: -0.3, flex: 1 }}>{car.name}</span>
+                <span style={{ fontSize: 12, color: "#AEAEB2", fontWeight: 500 }}>{passengers.length + (driver ? 1 : 0)}/{car.seats}</span>
+                <input value={cp.sector || ""} onChange={function(e) { setSector(car.id, e.target.value); }} placeholder="Secteur..." style={{ fontSize: 11, padding: "3px 8px", borderRadius: 8, border: "1px solid #E5E5EA", outline: "none", width: 100, color: "#1D1D1F", background: "#fff", fontFamily: "inherit" }} />
+                <div style={{ display: "flex", borderRadius: 8, overflow: "hidden", border: "1px solid #E5E5EA" }}>
+                  <button onClick={function() { setZoneType(car.id, "stratygo"); }} style={{ padding: "3px 8px", fontSize: 10, fontWeight: 700, border: "none", cursor: "pointer", background: cp.zoneType !== "talc" ? "#1D1D1F" : "#F5F5F7", color: cp.zoneType !== "talc" ? "#fff" : "#AEAEB2", fontFamily: "inherit" }}>Stratygo</button>
+                  <button onClick={function() { setZoneType(car.id, "talc"); }} style={{ padding: "3px 8px", fontSize: 10, fontWeight: 700, border: "none", cursor: "pointer", background: cp.zoneType === "talc" ? "#FF3B30" : "#F5F5F7", color: cp.zoneType === "talc" ? "#fff" : "#AEAEB2", fontFamily: "inherit" }}>TALC</button>
+                </div>
+                <button onClick={function() { setEc(car); setCf({ name: car.name, seats: car.seats, driverId: car.driverId || null }); setMo(true); }} style={{ background: "#F0F0F0", border: "none", cursor: "pointer", fontSize: 11, color: "#6E6E73", padding: "3px 8px", borderRadius: 6, fontFamily: "inherit" }}>Éditer</button>
+              </div>
+
+              {/* Body: horizontal layout */}
+              <div style={{ padding: "16px 18px", display: "flex", alignItems: "flex-start", gap: 0 }}>
+                {/* Driver */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-start", flexShrink: 0 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: accent, letterSpacing: 0.8, textTransform: "uppercase" }}>Conducteur</span>
+                  {driver
+                    ? <MemberTile m={driver} isDriver={true} accent={accent} isDrag={false} fromCarId={car.id} />
+                    : <div style={{ width: 185, height: 70, border: "2px dashed " + accent + "44", borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", color: accent + "88", fontSize: 12 }}>Aucun conducteur</div>
+                  }
+                </div>
+
+                {/* Connector */}
+                <div style={{ display: "flex", alignItems: "center", padding: "0 10px", marginTop: 26 }}>
+                  <svg width="28" height="2" style={{ flexShrink: 0 }}><line x1="0" y1="1" x2="28" y2="1" stroke={accent} strokeWidth="2" strokeDasharray="4 3" /></svg>
+                </div>
+
+                {/* Passengers */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: "#AEAEB2", letterSpacing: 0.8, textTransform: "uppercase", display: "block", marginBottom: 6 }}>Passagers ({passengers.length}/{maxPass})</span>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                    {passengers.map(function(m) {
+                      return <MemberTile key={m.id} m={m} onRemove={function() { removePassenger(car.id, m.id); }} isDriver={false} accent={accent} isDrag={true} fromCarId={car.id} />;
+                    })}
+                    {passengers.length === 0 && !isDrop && (
+                      <span style={{ color: "#C7C7CC", fontSize: 12, padding: "6px 0" }}>Glissez des membres ici ou utilisez +</span>
+                    )}
+                    {isDrop && dragging && (
+                      <div style={{ width: 155, height: 60, border: "2px dashed " + accent, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", color: accent, fontSize: 12, fontWeight: 600 }}>Déposer ici</div>
+                    )}
+                    {canAdd && (
+                      <button onClick={function() { setPicker(car.id); }} style={{ width: 38, height: 38, borderRadius: 99, border: "2px dashed " + accent + "66", background: accent + "0A", cursor: "pointer", color: accent, fontSize: 22, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 300, flexShrink: 0 }}>+</button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* TALC VTA selector */}
+              {cp.zoneType === "talc" && (
+                <div style={{ padding: "0 18px 14px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                  <Sel value={cp.vtaCode || ""} onChange={function(v) { setVtaCode(car.id, v); }} placeholder="Code VTA..."
+                    options={Object.keys(VTA_GROUPS).map(function(k) { return { value: k, label: k + " (" + VTA_GROUPS[k][0] + "...)" }; })}
+                    style={{ fontSize: 11 }} />
+                  {cp.vtaCode && <span style={{ fontSize: 11, color: "#6E6E73" }}>→ {(VTA_GROUPS[cp.vtaCode] || []).join(", ")}</span>}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Unassigned pool */}
+      <div style={{ marginTop: 24, background: dropTarget === "pool" ? "#F0F0F0" : "#FAFAFA", borderRadius: 18, border: "1px dashed #D2D2D7", overflow: "hidden", transition: "background 0.15s" }}
+        onDragOver={function(e) { e.preventDefault(); setDropTarget("pool"); }}
+        onDragLeave={function(e) { if (!e.currentTarget.contains(e.relatedTarget)) setDropTarget(null); }}
+        onDrop={function(e) {
+          e.preventDefault(); setDropTarget(null);
+          if (!dragging || !dragging.fromCarId) return;
+          moveToPool(dragging.memberId, dragging.fromCarId);
+          setDragging(null);
+        }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 18px", borderBottom: "1px solid #F0F0F0" }}>
+          <div style={{ width: 10, height: 10, borderRadius: 99, background: "#AEAEB2", flexShrink: 0 }} />
+          <span style={{ fontSize: 14, fontWeight: 700, color: "#AEAEB2", flex: 1 }}>Non assignés</span>
+          <span style={{ fontSize: 12, color: "#AEAEB2" }}>{unassigned.length} membre{unassigned.length !== 1 ? "s" : ""}</span>
+        </div>
+        <div style={{ padding: "16px 18px", display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {unassigned.length === 0 && <span style={{ fontSize: 12, color: "#C7C7CC" }}>Tout le monde est assigné 🎉</span>}
+          {unassigned.map(function(m) {
+            return <MemberTile key={m.id} m={m} isDriver={false} accent="#AEAEB2" isDrag={true} fromCarId={null} />;
+          })}
+        </div>
+      </div>
+
+      {/* Car modal */}
+      <Modal open={mo} onClose={function() { setMo(false); setEc(null); }} title={ec ? "Modifier la voiture" : "Ajouter une voiture"}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <Inp value={cf.name} onChange={function(v) { setCf(Object.assign({}, cf, { name: v })); }} placeholder="Nom de la voiture" />
+          <Inp type="number" value={cf.seats} onChange={function(v) { setCf(Object.assign({}, cf, { seats: Number(v) })); }} placeholder="Nombre de places" />
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 600, color: "#6E6E73", display: "block", marginBottom: 4 }}>Conducteur habituel</label>
+            <Sel value={cf.driverId || ""} onChange={function(v) { setCf(Object.assign({}, cf, { driverId: v ? Number(v) : null })); }}
+              placeholder="Aucun conducteur"
+              options={team.filter(function(m) { return m.active; }).map(function(m) { return { value: m.id, label: m.name + " (" + ROLE_LABELS[m.role] + ")" }; })}
+              style={{ width: "100%" }} />
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <Btn onClick={saveCar} style={{ flex: 1 }}>{ec ? "Enregistrer" : "Ajouter"}</Btn>
+            {ec && <Btn v="danger" onClick={function() { saveCars(cars.filter(function(c) { return c.id !== ec.id; })); setMo(false); setEc(null); }}>Supprimer</Btn>}
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
 }
 
 // CONTRACTS
