@@ -2542,7 +2542,16 @@ function CarnetTab() {
 
   var headers = rows.length > 0 ? Object.keys(rows[0]) : [];
 
-  var ROW_COLORS = { "inscription ok": "#D1FAE5", "en attente": "#FEF3C7", "annule": "#FEE2E2" };
+  var ROW_COLORS = {
+    "inscription ok": "gold",
+    "inscription ok /postprod": "OrangeRed",
+    "vente validée": "WhiteSmoke",
+    "vente validée j+7": "lightgrey",
+    "connexion ok": "lightgreen",
+    "connexion ok vrf": "LimeGreen",
+    "résilié": "firebrick",
+    "vente abandonée": "SlateGrey",
+  };
 
   return (
     <div>
@@ -2570,7 +2579,7 @@ function CarnetTab() {
             )}
             {filtered.map(function(row, i) {
               var status = row["etat_commande"] || "";
-              var bg = ROW_COLORS[status.toLowerCase()] || (i % 2 === 0 ? "#fff" : "#FAFAFA");
+              var bg = ROW_COLORS[status.toLowerCase()] || "#fff";
               return (
                 <tr key={i} style={{ background: bg }}>
                   {headers.map(function(h) {
