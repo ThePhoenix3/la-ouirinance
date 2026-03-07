@@ -2047,32 +2047,42 @@ function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups }) {
     updatePlan(np);
   }
 
+  // Reverse map: person name → VTA code
+  var VTA_PERSON_MAP = {};
+  Object.keys(VTA_GROUPS).forEach(function(code) {
+    VTA_GROUPS[code].forEach(function(name) {
+      if (!VTA_PERSON_MAP[name]) VTA_PERSON_MAP[name] = code;
+    });
+  });
+
   function initials(name) { var p = name.split(' '); return (p[0][0] + (p[p.length-1][0] || '')).toUpperCase(); }
 
   function Avatar({ name, role, size }) {
     var sz = size || 40;
     return (
-      <div style={{ width: sz, height: sz, borderRadius: sz, background: ROLE_COLORS[role] + "22", border: "2px solid " + ROLE_COLORS[role] + "44", display: "flex", alignItems: "center", justifyContent: "center", fontSize: sz * 0.33, fontWeight: 700, color: ROLE_COLORS[role], flexShrink: 0 }}>
+      <div style={{ width: sz, height: sz, borderRadius: sz, background: ROLE_COLORS[role] + "22", border: "2px solid " + ROLE_COLORS[role] + "55", display: "flex", alignItems: "center", justifyContent: "center", fontSize: sz * 0.33, fontWeight: 700, color: ROLE_COLORS[role], flexShrink: 0 }}>
         {initials(name)}
       </div>
     );
   }
 
-  function MemberTile({ m, onRemove, isDriver, accent, isDrag, fromCarId }) {
+  function MemberTile({ m, onRemove, isDriver, accent, isDrag, fromCarId, showVta }) {
     var ops = Array.isArray(m.operators) ? m.operators : [m.operator].filter(Boolean);
+    var vtaCode = showVta ? VTA_PERSON_MAP[m.name] : null;
     return (
       <div
         draggable={isDrag}
         onDragStart={isDrag ? function(e) { e.dataTransfer.effectAllowed = "move"; setDragging({ memberId: m.id, fromCarId: fromCarId }); } : undefined}
         onDragEnd={function() { setDragging(null); setDropTarget(null); }}
-        style={{ background: "#fff", borderRadius: 14, padding: isDriver ? "14px 16px" : "10px 14px", boxShadow: "0 1px 4px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.04)", display: "flex", alignItems: "center", gap: 10, position: "relative", borderLeft: isDriver ? "3px solid " + accent : "none", minWidth: isDriver ? 185 : 155, opacity: dragging && dragging.memberId === m.id ? 0.45 : 1, cursor: isDrag ? "grab" : "default", transition: "opacity 0.15s", flexShrink: 0 }}>
-        <Avatar name={m.name} role={m.role} size={isDriver ? 44 : 36} />
+        style={{ background: "#fff", borderRadius: 14, padding: isDriver ? "14px 16px" : "10px 14px", boxShadow: "0 2px 8px rgba(0,0,0,0.09), 0 0 0 1px rgba(0,0,0,0.05)", display: "flex", alignItems: "center", gap: 10, position: "relative", borderLeft: "3px solid " + accent + (isDriver ? "" : "99"), minWidth: isDriver ? 185 : 160, opacity: dragging && dragging.memberId === m.id ? 0.4 : 1, cursor: isDrag ? "grab" : "default", transition: "opacity 0.15s", flexShrink: 0 }}>
+        <Avatar name={m.name} role={m.role} size={isDriver ? 44 : 38} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: isDriver ? 14 : 13, fontWeight: 600, color: "#1D1D1F", letterSpacing: -0.3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.name}</div>
           <div style={{ display: "flex", gap: 4, marginTop: 3, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 10, fontWeight: 600, color: ROLE_COLORS[m.role], background: ROLE_COLORS[m.role] + "15", padding: "1px 6px", borderRadius: 99 }}>{ROLE_LABELS[m.role]}</span>
-            {ops.map(function(op) { return <span key={op} style={{ fontSize: 10, fontWeight: 600, color: OP_COLORS[op], background: OP_COLORS[op] + "18", padding: "1px 6px", borderRadius: 99 }}>{op}</span>; })}
-            {m.permis && <span style={{ fontSize: 10, fontWeight: 600, color: "#34C759", background: "#34C75915", padding: "1px 6px", borderRadius: 99 }}>Permis</span>}
+            <span style={{ fontSize: 10, fontWeight: 600, color: ROLE_COLORS[m.role], background: ROLE_COLORS[m.role] + "20", padding: "1px 6px", borderRadius: 99 }}>{ROLE_LABELS[m.role]}</span>
+            {ops.map(function(op) { return <span key={op} style={{ fontSize: 10, fontWeight: 700, color: OP_COLORS[op], background: OP_COLORS[op] + "20", padding: "1px 6px", borderRadius: 99 }}>{op}</span>; })}
+            {m.permis && <span style={{ fontSize: 10, fontWeight: 600, color: "#34C759", background: "#34C75920", padding: "1px 6px", borderRadius: 99 }}>Permis</span>}
+            {vtaCode && <span style={{ fontSize: 10, fontWeight: 700, color: "#FF3B30", background: "#FF3B3012", padding: "1px 6px", borderRadius: 99, letterSpacing: 0.2 }}>{vtaCode}</span>}
           </div>
         </div>
         {onRemove && <button onClick={onRemove} style={{ position: "absolute", top: 5, right: 5, background: "none", border: "none", cursor: "pointer", color: "#C7C7CC", fontSize: 16, lineHeight: 1, padding: 2 }}>×</button>}
@@ -2202,7 +2212,7 @@ function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups }) {
                 <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-start", flexShrink: 0 }}>
                   <span style={{ fontSize: 10, fontWeight: 700, color: accent, letterSpacing: 0.8, textTransform: "uppercase" }}>Conducteur</span>
                   {driver
-                    ? <MemberTile m={driver} isDriver={true} accent={accent} isDrag={false} fromCarId={car.id} />
+                    ? <MemberTile m={driver} isDriver={true} accent={accent} isDrag={false} fromCarId={car.id} showVta={cp.zoneType === "talc"} />
                     : <div style={{ width: 185, height: 70, border: "2px dashed " + accent + "44", borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", color: accent + "88", fontSize: 12 }}>Aucun conducteur</div>
                   }
                 </div>
@@ -2217,7 +2227,7 @@ function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups }) {
                   <span style={{ fontSize: 10, fontWeight: 700, color: "#AEAEB2", letterSpacing: 0.8, textTransform: "uppercase", display: "block", marginBottom: 6 }}>Passagers ({passengers.length}/{maxPass})</span>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
                     {passengers.map(function(m) {
-                      return <MemberTile key={m.id} m={m} onRemove={function() { removePassenger(car.id, m.id); }} isDriver={false} accent={accent} isDrag={true} fromCarId={car.id} />;
+                      return <MemberTile key={m.id} m={m} onRemove={function() { removePassenger(car.id, m.id); }} isDriver={false} accent={accent} isDrag={true} fromCarId={car.id} showVta={cp.zoneType === "talc"} />;
                     })}
                     {passengers.length === 0 && !isDrop && (
                       <span style={{ color: "#C7C7CC", fontSize: 12, padding: "6px 0" }}>Glissez des membres ici ou utilisez +</span>
@@ -2232,13 +2242,15 @@ function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups }) {
                 </div>
               </div>
 
-              {/* TALC VTA selector */}
-              {cp.zoneType === "talc" && (
-                <div style={{ padding: "0 18px 14px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                  <Sel value={cp.vtaCode || ""} onChange={function(v) { setVtaCode(car.id, v); }} placeholder="Code VTA..."
-                    options={Object.keys(VTA_GROUPS).map(function(k) { return { value: k, label: k + " (" + VTA_GROUPS[k][0] + "...)" }; })}
-                    style={{ fontSize: 11 }} />
-                  {cp.vtaCode && <span style={{ fontSize: 11, color: "#6E6E73" }}>→ {(VTA_GROUPS[cp.vtaCode] || []).join(", ")}</span>}
+              {/* TALC: show summary of codes in car */}
+              {cp.zoneType === "talc" && (driver || passengers.length > 0) && (
+                <div style={{ padding: "0 18px 14px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 11, color: "#AEAEB2", fontWeight: 600 }}>Codes VTA :</span>
+                  {[driver, ...passengers].filter(Boolean).map(function(m) {
+                    var code = VTA_PERSON_MAP[m.name];
+                    if (!code) return null;
+                    return <span key={m.id} style={{ fontSize: 11, fontWeight: 700, color: "#FF3B30", background: "#FF3B3010", padding: "2px 8px", borderRadius: 99 }}>{code} <span style={{ fontWeight: 400, color: "#6E6E73" }}>({m.name.split(' ')[0]})</span></span>;
+                  })}
                 </div>
               )}
             </div>
