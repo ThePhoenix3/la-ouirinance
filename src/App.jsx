@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import carnetData from "./data.json";
 
 const STORAGE_KEYS = { team: "agency-team-v3", cars: "agency-cars-v3", contracts: "agency-contracts-v3", dailyPlan: "agency-daily-plan-v3", objectives: "agency-objectives-v3" };
 
@@ -1330,6 +1331,7 @@ var TABS = [
 { id: "team", label: "Équipe" },
 { id: "map", label: "Carte" },
 { id: "import", label: "Import" },
+{ id: "carnet", label: "Carnet" },
 ];
 
 // MAIN APP
@@ -1501,6 +1503,7 @@ return (
     {tab === "objectifs" && <ObjectifsTab team={team} contracts={contracts} objectives={objectives} saveObjectives={saveObjectives} />}
     {tab === "cloche" && <ClocheTab team={team} contracts={contracts} />}
     {tab === "import" && <ImportTab team={team} saveTeam={saveTeam} contracts={contracts} saveContracts={saveContracts} />}
+    {tab === "carnet" && <CarnetTab />}
   </main>
 </div>
 );
@@ -2522,4 +2525,63 @@ return <div key={i} style={{ color: l.t === "error" ? "#F87171" : l.t === "succe
 )}
 </div>
 );
+}
+
+// CARNET
+function CarnetTab() {
+  var [search, setSearch] = useState("");
+  var rows = carnetData;
+
+  var filtered = useMemo(function() {
+    if (!search.trim()) return rows;
+    var q = search.toLowerCase();
+    return rows.filter(function(r) {
+      return Object.values(r).some(function(v) { return String(v).toLowerCase().includes(q); });
+    });
+  }, [rows, search]);
+
+  var headers = rows.length > 0 ? Object.keys(rows[0]) : [];
+
+  var ROW_COLORS = { "inscription ok": "#D1FAE5", "en attente": "#FEF3C7", "annule": "#FEE2E2" };
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <div style={{ fontSize: 20, fontWeight: 700 }}>Carnet de Commandes <span style={{ fontSize: 14, fontWeight: 400, color: "#6E6E73" }}>{filtered.length} / {rows.length}</span></div>
+        <input
+          value={search}
+          onChange={function(e) { setSearch(e.target.value); }}
+          placeholder="Rechercher..."
+          style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid #D2D2D7", fontSize: 13, width: 220, outline: "none" }}
+        />
+      </div>
+      <div style={{ overflowX: "auto", borderRadius: 12, border: "1px solid #E5E5EA" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+          <thead>
+            <tr style={{ background: "#F5F5F7" }}>
+              {headers.map(function(h) {
+                return <th key={h} style={{ padding: "8px 10px", textAlign: "left", fontWeight: 600, color: "#3A3A3C", whiteSpace: "nowrap", borderBottom: "1px solid #E5E5EA" }}>{h}</th>;
+              })}
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.length === 0 && (
+              <tr><td colSpan={headers.length} style={{ padding: 32, textAlign: "center", color: "#AEAEB2" }}>Aucun résultat</td></tr>
+            )}
+            {filtered.map(function(row, i) {
+              var status = row["etat_commande"] || "";
+              var bg = ROW_COLORS[status.toLowerCase()] || (i % 2 === 0 ? "#fff" : "#FAFAFA");
+              return (
+                <tr key={i} style={{ background: bg }}>
+                  {headers.map(function(h) {
+                    return <td key={h} style={{ padding: "6px 10px", borderBottom: "1px solid #F2F2F7", whiteSpace: "nowrap", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis" }}>{row[h] || ""}</td>;
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
 }
