@@ -1694,13 +1694,7 @@ setMo(false);
 var roleOrder = { "Manager": 0, "Assistant Manager": 1, "Formateur": 2, "Confirme": 3, "Debutant": 4 };
 
 // Weekly contracts per person
-var weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().split("T")[0];
-var weekContracts = (contracts || []).filter(function(c) { return c.date >= weekAgo; });
-var weekByName = {};
-weekContracts.forEach(function(c) { weekByName[c.commercial] = (weekByName[c.commercial] || 0) + 1; });
-
-function MemberCard({ m, onClick, showWeek }) {
-  var w = weekByName[m.name] || 0;
+function MemberCard({ m, onClick }) {
   return (
     <Card style={{ padding: 14, opacity: m.active ? 1 : 0.5, cursor: onClick ? "pointer" : "default" }} onClick={onClick}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -1715,7 +1709,6 @@ function MemberCard({ m, onClick, showWeek }) {
             {!m.active && <Badge color="#FF3B30">Inactif</Badge>}
           </div>
         </div>
-        {showWeek && <div style={{ fontSize: 18, fontWeight: 700, color: w > 0 ? "#0071E3" : "#AEAEB2", minWidth: 28, textAlign: "right" }}>{w}</div>}
       </div>
     </Card>
   );
@@ -1748,7 +1741,7 @@ return (
         <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: ROLE_COLORS[role] }}>{role}s ({members.length})</h3>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 10 }}>
-        {members.map(function(m) { return <MemberCard key={m.id} m={m} onClick={function() { openEdit(m); }} showWeek={true} />; })}
+        {members.map(function(m) { return <MemberCard key={m.id} m={m} onClick={function() { openEdit(m); }} />; })}
       </div>
     </div>
   );
@@ -1762,8 +1755,16 @@ return (
   function renameGroup(gid, name) { saveGroups(groups.map(function(g) { return g.id === gid ? Object.assign({}, g, { name: name }) : g; })); }
   function removeMember(gid, mid) { saveGroups(groups.map(function(g) { return g.id === gid ? Object.assign({}, g, { memberIds: g.memberIds.filter(function(id) { return id !== mid; }) }) : g; })); }
   function addMember(gid, mid) {
+    var member = team.find(function(m) { return m.id === mid; });
     saveGroups(groups.map(function(g) {
-      if (g.id === gid) return Object.assign({}, g, { memberIds: g.memberIds.indexOf(mid) >= 0 ? g.memberIds : g.memberIds.concat(mid) });
+      if (g.id === gid) {
+        var newIds = g.memberIds.indexOf(mid) >= 0 ? g.memberIds : g.memberIds.concat(mid);
+        var updates = { memberIds: newIds };
+        if (g.memberIds.length === 0 && member) {
+          updates.name = "Équipe de " + member.name.split(' ')[0];
+        }
+        return Object.assign({}, g, updates);
+      }
       return Object.assign({}, g, { memberIds: g.memberIds.filter(function(id) { return id !== mid; }) });
     }));
   }
