@@ -2311,7 +2311,13 @@ function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups }) {
                     </span>
                   : <>
                       <span style={{ fontSize: 12, color: "#AEAEB2", fontWeight: 500 }}>{passengers.length + (driver ? 1 : 0)}/{car.seats}</span>
-                      <SectorAutocomplete value={cp.sector || ""} onSelect={function(name, zoneType) { setSector(car.id, name); if (zoneType) setZoneType(car.id, zoneType); }} />
+                      <SectorAutocomplete value={cp.sector || ""} onSelect={function(name, zoneType) {
+                        var u = JSON.parse(JSON.stringify(plan));
+                        if (!u[car.id]) u[car.id] = { members: [], sector: "", zoneType: "stratygo", vtaCode: "" };
+                        u[car.id].sector = name;
+                        if (zoneType) { u[car.id].zoneType = zoneType; if (zoneType === "stratygo") u[car.id].vtaCode = ""; }
+                        updatePlan(u);
+                      }} />
                       <div style={{ display: "flex", borderRadius: 8, overflow: "hidden", border: "1px solid #E5E5EA" }}>
                         <button onClick={function() { setZoneType(car.id, "stratygo"); }} style={{ padding: "3px 8px", fontSize: 10, fontWeight: 700, border: "none", cursor: "pointer", background: cp.zoneType !== "talc" ? "#1D1D1F" : "#F5F5F7", color: cp.zoneType !== "talc" ? "#fff" : "#AEAEB2", fontFamily: "inherit" }}>Stratygo</button>
                         <button onClick={function() { setZoneType(car.id, "talc"); }} style={{ padding: "3px 8px", fontSize: 10, fontWeight: 700, border: "none", cursor: "pointer", background: cp.zoneType === "talc" ? "#FF3B30" : "#F5F5F7", color: cp.zoneType === "talc" ? "#fff" : "#AEAEB2", fontFamily: "inherit" }}>TALC</button>
