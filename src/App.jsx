@@ -127,35 +127,35 @@ const DEPT_ZONES = {
 };
 
 const DEMO_TEAM = [
-{ id: 1, name: "Djany Legrand", role: "Manager", operators: ["Free"], permis: true, voiture: true, active: true },
-{ id: 2, name: "Leo Merde", role: "Confirme", operators: ["Free"], permis: true, voiture: true, active: true },
-{ id: 3, name: "Stephane Legrand", role: "Confirme", operators: ["Free"], permis: true, voiture: true, active: true },
-{ id: 4, name: "Sandra Pereira", role: "Confirme", operators: ["Free"], permis: true, voiture: false, active: true },
-{ id: 5, name: "William Goujon", role: "Confirme", operators: ["Free"], permis: true, voiture: true, active: true },
-{ id: 6, name: "Yannis Aboulfatah", role: "Confirme", operators: ["Free"], permis: true, voiture: false, active: true },
-{ id: 7, name: "Lyna Belkessa", role: "Confirme", operators: ["Free"], permis: false, voiture: false, active: true },
-{ id: 8, name: "Ali Atf", role: "Confirme", operators: ["Free"], permis: true, voiture: true, active: true },
-{ id: 9, name: "Victor Moize", role: "Confirme", operators: ["Free"], permis: true, voiture: false, active: true },
-{ id: 10, name: "Momed Ali", role: "Confirme", operators: ["Free"], permis: true, voiture: false, active: true },
-{ id: 11, name: "Pablo Grasset", role: "Confirme", operators: ["Free"], permis: true, voiture: false, active: true },
-{ id: 12, name: "Hamid Atroune", role: "Debutant", operators: ["Free"], permis: true, voiture: false, active: true },
-{ id: 13, name: "Cheick Ouedraogo", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true },
-{ id: 14, name: "Mohamed Mehdi Larech", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true },
-{ id: 15, name: "Omar Mbengue", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true },
-{ id: 16, name: "Melodie Mendousse", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true },
-{ id: 17, name: "Ronan Kombo", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true },
-{ id: 18, name: "Abdellah Cheikh", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true },
-{ id: 19, name: "Paul Geriltault", role: "Debutant", operators: ["Free"], permis: true, voiture: false, active: true },
-{ id: 20, name: "Abdel Nouar", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true },
-{ id: 21, name: "Ouissem Ouirini", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true },
-{ id: 22, name: "Titouan Salaun", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true },
-{ id: 23, name: "Nora Wahid", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true },
-{ id: 24, name: "Eloise Meillerais", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true },
-{ id: 25, name: "Come Audonnet", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true },
-{ id: 26, name: "Ilhan Kocak", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true },
-{ id: 27, name: "Ines Ouirini", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true },
-{ id: 28, name: "Shana David", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true },
-{ id: 29, name: "Adam El Jazouli", role: "Confirme", operators: ["Free"], permis: false, voiture: false, active: true },
+{ id: 1, name: "Djany Legrand", role: "Manager", operators: ["Free"], permis: true, voiture: true, active: true, vstCodes: ["vst-dclavereuil"] },
+{ id: 2, name: "Leo Merde", role: "Confirme", operators: ["Free"], permis: true, voiture: true, active: true, vstCodes: ["vst-lmertz"] },
+{ id: 3, name: "Stephane Legrand", role: "Confirme", operators: ["Free"], permis: true, voiture: true, active: true, vstCodes: [] },
+{ id: 4, name: "Sandra Pereira", role: "Confirme", operators: ["Free"], permis: true, voiture: false, active: true, vstCodes: [] },
+{ id: 5, name: "William Goujon", role: "Confirme", operators: ["Free"], permis: true, voiture: true, active: true, vstCodes: ["vst-eluc"] },
+{ id: 6, name: "Yannis Aboulfatah", role: "Confirme", operators: ["Free"], permis: true, voiture: false, active: true, vstCodes: [] },
+{ id: 7, name: "Lyna Belkessa", role: "Confirme", operators: ["Free"], permis: false, voiture: false, active: true, vstCodes: ["vst-dbelkessa"] },
+{ id: 8, name: "Ali Atf", role: "Confirme", operators: ["Free"], permis: true, voiture: true, active: true, vstCodes: [] },
+{ id: 9, name: "Victor Moize", role: "Confirme", operators: ["Free"], permis: true, voiture: false, active: true, vstCodes: [] },
+{ id: 10, name: "Momed Ali", role: "Confirme", operators: ["Free"], permis: true, voiture: false, active: true, vstCodes: [] },
+{ id: 11, name: "Pablo Grasset", role: "Confirme", operators: ["Free"], permis: true, voiture: false, active: true, vstCodes: [] },
+{ id: 12, name: "Hamid Atroune", role: "Debutant", operators: ["Free"], permis: true, voiture: false, active: true, vstCodes: ["vst-adahmani"] },
+{ id: 13, name: "Cheick Ouedraogo", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true, vstCodes: [] },
+{ id: 14, name: "Mohamed Mehdi Larech", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true, vstCodes: [] },
+{ id: 15, name: "Omar Mbengue", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true, vstCodes: [] },
+{ id: 16, name: "Melodie Mendousse", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true, vstCodes: [] },
+{ id: 17, name: "Ronan Kombo", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true, vstCodes: [] },
+{ id: 18, name: "Abdellah Cheikh", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true, vstCodes: ["vst-bouchrif"] },
+{ id: 19, name: "Paul Geriltault", role: "Debutant", operators: ["Free"], permis: true, voiture: false, active: true, vstCodes: ["vst-droode"] },
+{ id: 20, name: "Abdel Nouar", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true, vstCodes: ["vst-hnouar"] },
+{ id: 21, name: "Ouissem Ouirini", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true, vstCodes: ["vst-kelahmadi"] },
+{ id: 22, name: "Titouan Salaun", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true, vstCodes: [] },
+{ id: 23, name: "Nora Wahid", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true, vstCodes: ["vst-dpouilly"] },
+{ id: 24, name: "Eloise Meillerais", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true, vstCodes: [] },
+{ id: 25, name: "Come Audonnet", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true, vstCodes: [] },
+{ id: 26, name: "Ilhan Kocak", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true, vstCodes: [] },
+{ id: 27, name: "Ines Ouirini", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true, vstCodes: [] },
+{ id: 28, name: "Shana David", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true, vstCodes: [] },
+{ id: 29, name: "Adam El Jazouli", role: "Confirme", operators: ["Free"], permis: false, voiture: false, active: true, vstCodes: [] },
 ];
 
 const DEMO_CARS = [
@@ -1227,8 +1227,10 @@ function carnetToContracts(rows) {
     var parts = m.name.split(' ');
     var code = 'vst-' + parts[0][0].toLowerCase() + parts[parts.length - 1].toLowerCase();
     vstMap[code] = m.name;
+    // Also register explicitly assigned vstCodes
+    (m.vstCodes || []).forEach(function(c) { vstMap[c] = m.name; });
   });
-  // Manual overrides where system login doesn't match the naming pattern
+  // Manual overrides where system login doesn't match the naming pattern (kept as safety net)
   Object.assign(vstMap, {
     'vst-lmertz':              'Leo Merde',
     'vst-hnouar':              'Abdel Nouar',
@@ -1594,7 +1596,7 @@ return (
 
   <main style={{ padding: "28px 32px", maxWidth: 1100, margin: "0 auto" }} className="tab-content" key={tab}>
     {tab === "dashboard" && <DashboardTab team={team} contracts={contracts} dailyPlan={dailyPlan} lastSync={lastSync} scraperStatus={scraperStatus} />}
-    {tab === "team" && <TeamTab team={team} saveTeam={saveTeam} contracts={contracts} groups={groups} saveGroups={saveGroups} />}
+    {tab === "team" && <TeamTab team={team} saveTeam={saveTeam} contracts={contracts} saveContracts={saveContracts} groups={groups} saveGroups={saveGroups} />}
     {tab === "cars" && <CarsTab team={team} cars={cars} saveCars={saveCars} dailyPlan={dailyPlan} saveDailyPlan={saveDailyPlan} groups={groups} />}
     {tab === "contracts" && <ContractsTab contracts={contracts} team={team} dailyPlan={dailyPlan} cars={cars} saveContracts={saveContracts} />}
     {tab === "map" && <MapTab />}
@@ -1687,21 +1689,64 @@ return (
 }
 
 // TEAM
-function TeamTab({ team, saveTeam, contracts, groups, saveGroups }) {
+function TeamTab({ team, saveTeam, contracts, saveContracts, groups, saveGroups }) {
 const [mo, setMo] = useState(false);
 const [em, setEm] = useState(null);
-const [f, setF] = useState({ name: "", role: "Debutant", operators: ["Free"], permis: false, voiture: false });
+const [f, setF] = useState({ name: "", role: "Debutant", operators: ["Free"], permis: false, voiture: false, vstCodes: [] });
 const [fl, setFl] = useState("");
 const [vue, setVue] = useState("liste");
 const [picker, setPicker] = useState(null);
+const [vstInputs, setVstInputs] = useState({});
+const [fVstInput, setFVstInput] = useState("");
 
-function openAdd() { setEm(null); setF({ name: "", role: "Debutant", operators: ["Free"], permis: false, voiture: false }); setMo(true); }
-function openEdit(m) { setEm(m); setF({ name: m.name, role: m.role, operators: Array.isArray(m.operators) ? m.operators : [m.operator || "Free"], permis: m.permis, voiture: m.voiture }); setMo(true); }
+function openAdd() { setEm(null); setF({ name: "", role: "Debutant", operators: ["Free"], permis: false, voiture: false, vstCodes: [] }); setFVstInput(""); setMo(true); }
+function openEdit(m) { setEm(m); setF({ name: m.name, role: m.role, operators: Array.isArray(m.operators) ? m.operators : [m.operator || "Free"], permis: m.permis, voiture: m.voiture, vstCodes: m.vstCodes ? m.vstCodes.slice() : [] }); setFVstInput(""); setMo(true); }
 function save() {
 if (!f.name.trim()) return;
 if (em) { saveTeam(team.map(function(m) { return m.id === em.id ? Object.assign({}, m, f) : m; })); }
 else { saveTeam([...team, { id: Date.now(), ...f, active: true }]); }
 setMo(false);
+}
+
+function assignVstCode(login, memberId) {
+  var newTeam = team.map(function(m) {
+    if (m.id === memberId) {
+      var codes = (m.vstCodes || []).filter(function(c) { return c !== login; });
+      return Object.assign({}, m, { vstCodes: codes.concat(login) });
+    }
+    // Remove from any other member who had this code
+    return Object.assign({}, m, { vstCodes: (m.vstCodes || []).filter(function(c) { return c !== login; }) });
+  });
+  saveTeam(newTeam);
+  var member = newTeam.find(function(m) { return m.id === memberId; });
+  if (member && saveContracts) {
+    var updated = contracts.map(function(c) {
+      if (c.commercial === login) return Object.assign({}, c, { commercial: member.name });
+      return c;
+    });
+    saveContracts(updated);
+  }
+}
+
+function addVstCodeToMember(code, memberId) {
+  var trimmed = code.trim().toLowerCase();
+  if (!trimmed) return;
+  if (!trimmed.startsWith('vst-')) trimmed = 'vst-' + trimmed;
+  saveTeam(team.map(function(m) {
+    if (m.id === memberId) {
+      var codes = (m.vstCodes || []);
+      if (codes.indexOf(trimmed) >= 0) return m;
+      return Object.assign({}, m, { vstCodes: codes.concat(trimmed) });
+    }
+    return m;
+  }));
+}
+
+function removeVstCodeFromMember(code, memberId) {
+  saveTeam(team.map(function(m) {
+    if (m.id === memberId) return Object.assign({}, m, { vstCodes: (m.vstCodes || []).filter(function(c) { return c !== code; }) });
+    return m;
+  }));
 }
 
 var roleOrder = { "Manager": 0, "Assistant Manager": 1, "Formateur": 2, "Confirme": 3, "Debutant": 4 };
@@ -1733,6 +1778,7 @@ return (
   <div style={{ display: "flex", gap: 6 }}>
     <Btn s="sm" v={vue === "liste" ? "primary" : "secondary"} onClick={function() { setVue("liste"); }}>Liste ({team.length})</Btn>
     <Btn s="sm" v={vue === "orga" ? "primary" : "secondary"} onClick={function() { setVue("orga"); }}>Organigramme</Btn>
+    <Btn s="sm" v={vue === "vst" ? "primary" : "secondary"} onClick={function() { setVue("vst"); }}>Codes VST</Btn>
   </div>
   <div style={{ display: "flex", gap: 6 }}>
     {vue === "liste" && ROLES.map(function(r) {
@@ -1740,7 +1786,7 @@ return (
       if (!count) return null;
       return <Btn key={r} s="sm" v={fl === r ? "primary" : "secondary"} onClick={function() { setFl(fl === r ? "" : r); }}>{r} ({count})</Btn>;
     })}
-    <Btn onClick={openAdd}>+ Ajouter</Btn>
+    {vue !== "vst" && <Btn onClick={openAdd}>+ Ajouter</Btn>}
   </div>
 </div>
 
@@ -1935,6 +1981,112 @@ return (
   );
 })()}
 
+{vue === "vst" && (function() {
+  // Build a map of all VST codes to their assigned member name
+  var codeToName = {};
+  team.forEach(function(m) { (m.vstCodes || []).forEach(function(c) { codeToName[c] = m.name; }); });
+
+  // Unresolved = contracts where commercial still starts with 'vst-'
+  var unresGroups = {};
+  contracts.forEach(function(c) {
+    if (c.commercial && c.commercial.startsWith('vst-')) {
+      if (!unresGroups[c.commercial]) unresGroups[c.commercial] = [];
+      unresGroups[c.commercial].push(c);
+    }
+  });
+  var unresList = Object.keys(unresGroups).sort();
+
+  return (
+    <div>
+      {/* Unresolved codes */}
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+          <div style={{ width: 4, height: 20, borderRadius: 2, background: "#FF3B30" }} />
+          <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#FF3B30" }}>
+            Codes non attribués {unresList.length > 0 ? "(" + unresList.length + ")" : "— tout est résolu ✓"}
+          </h3>
+        </div>
+        {unresList.length === 0 && (
+          <p style={{ fontSize: 13, color: "#AEAEB2", margin: 0 }}>Tous les codes sont attribués à un commercial.</p>
+        )}
+        {unresList.map(function(login) {
+          var ctrs = unresGroups[login];
+          return (
+            <Card key={login} style={{ padding: "12px 16px", marginBottom: 8, borderLeft: "3px solid #FF3B30" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                <code style={{ fontSize: 13, fontWeight: 700, color: "#FF3B30", background: "#FF3B3010", padding: "3px 8px", borderRadius: 6 }}>{login}</code>
+                <span style={{ fontSize: 12, color: "#6E6E73" }}>{ctrs.length} contrat{ctrs.length > 1 ? "s" : ""}</span>
+                <span style={{ fontSize: 11, color: "#AEAEB2" }}>dernier : {ctrs[ctrs.length - 1].date || "—"}</span>
+                <div style={{ marginLeft: "auto" }}>
+                  <Sel
+                    value=""
+                    placeholder="Attribuer à..."
+                    onChange={function(v) { if (v) assignVstCode(login, parseInt(v)); }}
+                    options={team.filter(function(m) { return m.active; }).sort(function(a,b) { return a.name.localeCompare(b.name); }).map(function(m) { return { value: String(m.id), label: m.name }; })}
+                  />
+                </div>
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* All team members with their codes */}
+      <div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+          <div style={{ width: 4, height: 20, borderRadius: 2, background: "#0071E3" }} />
+          <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#1D1D1F" }}>Codes par commercial</h3>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {team.filter(function(m) { return m.active; }).sort(function(a,b) { return a.name.localeCompare(b.name); }).map(function(m) {
+            var codes = m.vstCodes || [];
+            var inputVal = vstInputs[m.id] || "";
+            return (
+              <Card key={m.id} style={{ padding: "10px 14px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: ROLE_COLORS[m.role] + "18", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: ROLE_COLORS[m.role], flexShrink: 0 }}>{m.name[0]}</div>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "#1D1D1F", minWidth: 150 }}>{m.name}</span>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", flex: 1, alignItems: "center" }}>
+                    {codes.map(function(code) {
+                      return (
+                        <span key={code} style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#0071E310", border: "1px solid #0071E330", borderRadius: 8, padding: "2px 8px", fontSize: 12, fontWeight: 600, color: "#0071E3" }}>
+                          {code}
+                          <button onClick={function() { removeVstCodeFromMember(code, m.id); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#0071E380", fontSize: 14, lineHeight: 1, padding: 0, display: "flex", alignItems: "center" }}>×</button>
+                        </span>
+                      );
+                    })}
+                    {codes.length === 0 && <span style={{ fontSize: 12, color: "#AEAEB2", fontStyle: "italic" }}>Aucun code attribué</span>}
+                  </div>
+                  <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                    <input
+                      value={inputVal}
+                      onChange={function(e) { var v = {}; v[m.id] = e.target.value; setVstInputs(Object.assign({}, vstInputs, v)); }}
+                      onKeyDown={function(e) {
+                        if (e.key === 'Enter' && inputVal.trim()) {
+                          addVstCodeToMember(inputVal, m.id);
+                          var v = {}; v[m.id] = ""; setVstInputs(Object.assign({}, vstInputs, v));
+                        }
+                      }}
+                      placeholder="vst-xxx"
+                      style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid rgba(0,0,0,0.12)", fontSize: 12, width: 110, fontFamily: "monospace", outline: "none" }}
+                    />
+                    <Btn s="sm" v="secondary" onClick={function() {
+                      if (inputVal.trim()) {
+                        addVstCodeToMember(inputVal, m.id);
+                        var v = {}; v[m.id] = ""; setVstInputs(Object.assign({}, vstInputs, v));
+                      }
+                    }}>+</Btn>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+})()}
+
 <Modal open={mo} onClose={function() { setMo(false); }} title={em ? "Modifier" : "Ajouter"}>
 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
 <div><label style={{ fontSize: 12, fontWeight: 600, color: "#6E6E73", display: "block", marginBottom: 4 }}>Nom</label><Inp value={f.name} onChange={function(v) { setF(Object.assign({}, f, { name: v })); }} placeholder="Nom" /></div>
@@ -1945,6 +2097,45 @@ return (
 <div style={{ display: "flex", gap: 20 }}>
 <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}><input type="checkbox" checked={f.permis} onChange={function(e) { setF(Object.assign({}, f, { permis: e.target.checked })); }} />Permis</label>
 <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}><input type="checkbox" checked={f.voiture} onChange={function(e) { setF(Object.assign({}, f, { voiture: e.target.checked })); }} />Voiture</label>
+</div>
+<div>
+  <label style={{ fontSize: 12, fontWeight: 600, color: "#6E6E73", display: "block", marginBottom: 6 }}>Codes VST</label>
+  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+    {(f.vstCodes || []).map(function(code) {
+      return (
+        <span key={code} style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#0071E310", border: "1px solid #0071E330", borderRadius: 8, padding: "2px 8px", fontSize: 12, fontWeight: 600, color: "#0071E3" }}>
+          {code}
+          <button type="button" onClick={function() { setF(Object.assign({}, f, { vstCodes: (f.vstCodes || []).filter(function(c) { return c !== code; }) })); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#0071E380", fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
+        </span>
+      );
+    })}
+    {(f.vstCodes || []).length === 0 && <span style={{ fontSize: 12, color: "#AEAEB2", fontStyle: "italic" }}>Aucun code</span>}
+  </div>
+  <div style={{ display: "flex", gap: 6 }}>
+    <input
+      value={fVstInput}
+      onChange={function(e) { setFVstInput(e.target.value); }}
+      onKeyDown={function(e) {
+        if (e.key === 'Enter' && fVstInput.trim()) {
+          e.preventDefault();
+          var code = fVstInput.trim().toLowerCase();
+          if (!code.startsWith('vst-')) code = 'vst-' + code;
+          if ((f.vstCodes || []).indexOf(code) < 0) setF(Object.assign({}, f, { vstCodes: (f.vstCodes || []).concat(code) }));
+          setFVstInput("");
+        }
+      }}
+      placeholder="vst-xxx + Entrée"
+      style={{ flex: 1, padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(0,0,0,0.12)", fontSize: 12, fontFamily: "monospace", outline: "none" }}
+    />
+    <Btn s="sm" v="secondary" onClick={function() {
+      if (fVstInput.trim()) {
+        var code = fVstInput.trim().toLowerCase();
+        if (!code.startsWith('vst-')) code = 'vst-' + code;
+        if ((f.vstCodes || []).indexOf(code) < 0) setF(Object.assign({}, f, { vstCodes: (f.vstCodes || []).concat(code) }));
+        setFVstInput("");
+      }
+    }}>Ajouter</Btn>
+  </div>
 </div>
 <div style={{ display: "flex", gap: 10 }}>
 <Btn onClick={save} style={{ flex: 1 }}>{em ? "Enregistrer" : "Ajouter"}</Btn>
