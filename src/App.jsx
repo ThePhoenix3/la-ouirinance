@@ -1997,6 +1997,44 @@ function SectorAutocomplete({ value, onSelect }) {
   );
 }
 
+function CommuneAutocomplete({ value, onChange, sectorName, isTalc }) {
+  var [open, setOpen] = useState(false);
+  var sectorData = sectorName ? (isTalc ? JACHERE_TALC[sectorName] : JACHERE[sectorName]) : null;
+  var communes = sectorData ? sectorData.communes : [];
+  var q = (value || "").trim().toUpperCase();
+  var matches = communes.filter(function(c) {
+    return q.length >= 1 && c.v.indexOf(q) >= 0 && c.v !== q;
+  });
+  return (
+    <div style={{ position: "relative" }}>
+      <input
+        value={value}
+        onChange={function(e) { onChange(e.target.value); setOpen(true); }}
+        onFocus={function() { setOpen(true); }}
+        onBlur={function() { setTimeout(function() { setOpen(false); }, 150); }}
+        placeholder={sectorName ? "Commune..." : "Secteur d'abord"}
+        disabled={!sectorName}
+        style={{ fontSize: 11, padding: "4px 8px", borderRadius: 8, border: "1px solid #E5E5EA", outline: "none", width: 130, color: "#1D1D1F", background: sectorName ? "#fff" : "#F5F5F7", fontFamily: "inherit", boxSizing: "border-box" }}
+      />
+      {open && matches.length > 0 && (
+        <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, background: "#fff", borderRadius: 10, boxShadow: "0 4px 20px rgba(0,0,0,0.15)", zIndex: 300, minWidth: 150, overflow: "hidden", border: "1px solid #E5E5EA" }}>
+          {matches.slice(0, 7).map(function(c) {
+            return (
+              <div key={c.v} onMouseDown={function() { onChange(c.v); setOpen(false); }}
+                style={{ padding: "7px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", color: "#1D1D1F" }}
+                onMouseEnter={function(e) { e.currentTarget.style.background = "#F5F5F7"; }}
+                onMouseLeave={function(e) { e.currentTarget.style.background = ""; }}>
+                <span>{c.v}</span>
+                <span style={{ fontSize: 10, color: "#AEAEB2" }}>{c.p.toLocaleString("fr-FR")} pr.</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // CARS
 function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups }) {
   var CAR_PALETTE = ["#0071E3","#34C759","#FF9F0A","#AF52DE","#FF2D55","#5AC8FA","#FF6B35","#00B4D8"];
@@ -2071,6 +2109,14 @@ function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups }) {
     var u = JSON.parse(JSON.stringify(plan));
     if (!u[cid]) u[cid] = { members: [], sector: "", zoneType: "stratygo", vtaCode: "" };
     u[cid].zoneType = z; if (z === "stratygo") u[cid].vtaCode = "";
+    updatePlan(u);
+  }
+
+  function setMemberCommune(cid, mid, commune) {
+    var u = JSON.parse(JSON.stringify(plan));
+    if (!u[cid]) u[cid] = { members: [], sector: "", zoneType: "stratygo", vtaCode: "" };
+    if (!u[cid].memberCommunes) u[cid].memberCommunes = {};
+    u[cid].memberCommunes[mid] = commune;
     updatePlan(u);
   }
 
@@ -2281,7 +2327,10 @@ function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups }) {
                 <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-start", flexShrink: 0 }}>
                   <span style={{ fontSize: 10, fontWeight: 700, color: accent, letterSpacing: 0.8, textTransform: "uppercase" }}>Conducteur</span>
                   {driver
-                    ? <MemberTile m={driver} isDriver={true} accent={accent} isDrag={false} fromCarId={car.id} showVta={cp.zoneType === "talc"} />
+                    ? <>
+                        <MemberTile m={driver} isDriver={true} accent={accent} isDrag={false} fromCarId={car.id} showVta={cp.zoneType === "talc"} />
+                        <CommuneAutocomplete value={(cp.memberCommunes && cp.memberCommunes[driver.id]) || ""} onChange={function(v) { setMemberCommune(car.id, driver.id, v); }} sectorName={cp.sector} isTalc={cp.zoneType === "talc"} />
+                      </>
                     : <div style={{ width: 185, height: 70, border: "2px dashed " + accent + "44", borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", color: accent + "88", fontSize: 12 }}>Aucun conducteur</div>
                   }
                 </div>
@@ -2296,7 +2345,12 @@ function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups }) {
                   <span style={{ fontSize: 10, fontWeight: 700, color: "#AEAEB2", letterSpacing: 0.8, textTransform: "uppercase", display: "block", marginBottom: 6 }}>Passagers ({passengers.length}/{maxPass})</span>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
                     {passengers.map(function(m) {
-                      return <MemberTile key={m.id} m={m} onRemove={function() { removePassenger(car.id, m.id); }} isDriver={false} accent={accent} isDrag={true} fromCarId={car.id} showVta={cp.zoneType === "talc"} />;
+                      return (
+                        <div key={m.id} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                          <MemberTile m={m} onRemove={function() { removePassenger(car.id, m.id); }} isDriver={false} accent={accent} isDrag={true} fromCarId={car.id} showVta={cp.zoneType === "talc"} />
+                          <CommuneAutocomplete value={(cp.memberCommunes && cp.memberCommunes[m.id]) || ""} onChange={function(v) { setMemberCommune(car.id, m.id, v); }} sectorName={cp.sector} isTalc={cp.zoneType === "talc"} />
+                        </div>
+                      );
                     })}
                     {passengers.length === 0 && !isDrop && (
                       <span style={{ color: "#C7C7CC", fontSize: 12, padding: "6px 0" }}>Glissez des membres ici ou utilisez +</span>
