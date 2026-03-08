@@ -2580,7 +2580,10 @@ const [sel, setSel] = useState(null);
 const [selSource, setSelSource] = useState(null);
 const [sortBy, setSortBy] = useState("c");
 const [month, setMonth] = useState("");
-const [communeModal, setCommuneModal] = useState(null); // { commune, dept, isTalc }
+const [communeView, setCommuneView] = useState(null); // { commune, dept, isTalc }
+const [rueSearch, setRueSearch] = useState("");
+
+var last6Months = MONTHS_ORDER.slice(-6);
 
 var stats = Object.entries(JACHERE).map(function(entry) {
 var name = entry[0]; var data = entry[1];
@@ -2595,54 +2598,149 @@ var tc = data.communes.reduce(function(s, c) { return s + getTalcC(c, data.dept,
 return { name: name, dept: data.dept, communes: data.communes, tp: tp, tc: tc, taux: tp ? (tc / tp * 100) : 0, source: "TALC" };
 });
 
-var last6Months = MONTHS_ORDER.slice(-6);
+// === COMMUNE DETAIL VIEW ===
+if (communeView) {
+var cv = communeView.commune;
+var cvDept = communeView.dept;
+var cvTalc = communeView.isTalc;
+var cvColor = cvTalc ? "#FF9F0A" : "#34C759";
 
-function CommuneModal() {
-if (!communeModal) return null;
-var c = communeModal.commune;
-var dept = communeModal.dept;
-var talc = communeModal.isTalc;
-var months = last6Months;
-var vals = months.map(function(mk) {
-  return { mk: mk, label: MONTHS_LABELS[mk], count: talc ? getTalcC(c, dept, mk) : getC(c, dept, mk) };
+// Bar chart: last 6 months
+var cvVals = last6Months.map(function(mk) {
+  return { mk: mk, label: MONTHS_LABELS[mk], count: cvTalc ? getTalcC(cv, cvDept, mk) : getC(cv, cvDept, mk) };
 });
-var maxVal = Math.max.apply(null, vals.map(function(v) { return v.count; })) || 1;
+var cvMax = Math.max.apply(null, cvVals.map(function(v) { return v.count; })) || 1;
+var cvTotal6 = cvVals.reduce(function(s, v) { return s + v.count; }, 0);
+
+// Street data from live contracts
+var cvContracts = DEMO_CONTRACTS.filter(function(ct) {
+  return (ct.ville || "").toUpperCase().trim() === cv.v;
+});
+// Group by rue
+var rueMap = {};
+cvContracts.forEach(function(ct) {
+  var r = (ct.rue || "").trim();
+  if (!r) r = "(rue non renseignée)";
+  if (!rueMap[r]) rueMap[r] = { count: 0, commerciaux: {} };
+  rueMap[r].count++;
+  var com = ct.commercial || "?";
+  rueMap[r].commerciaux[com] = (rueMap[r].commerciaux[com] || 0) + 1;
+});
+var rueList = Object.entries(rueMap).sort(function(a, b) { return b[1].count - a[1].count; });
+var rueQuery = rueSearch.trim().toUpperCase();
+var rueFiltered = rueQuery ? rueList.filter(function(e) { return e[0].toUpperCase().indexOf(rueQuery) >= 0; }) : rueList;
+
+// Commercial color palette (reuse team colors)
+var comColors = ["#0071E3","#34C759","#FF9F0A","#FF3B30","#AF52DE","#5AC8FA","#FF2D55","#5856D6"];
+var comColorMap = {};
+var comColorIdx = 0;
+function getComColor(name) {
+  if (!comColorMap[name]) { comColorMap[name] = comColors[comColorIdx++ % comColors.length]; }
+  return comColorMap[name];
+}
+
 return (
-<div onClick={function() { setCommuneModal(null); }} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 1000, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
-<div onClick={function(e) { e.stopPropagation(); }} style={{ background: "#fff", borderRadius: "20px 20px 0 0", padding: "24px 20px 32px", width: "100%", maxWidth: 520, boxShadow: "0 -4px 40px rgba(0,0,0,0.15)" }}>
-  <div style={{ width: 36, height: 4, borderRadius: 2, background: "#D1D1D6", margin: "0 auto 20px" }} />
-  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+<div>
+{/* Breadcrumb nav */}
+<div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
+  <Btn v="ghost" onClick={function() { setSel(null); setSelSource(null); setCommuneView(null); setRueSearch(""); }}>← Secteurs</Btn>
+  <span style={{ color: "#D1D1D6", fontSize: 14 }}>›</span>
+  <Btn v="ghost" onClick={function() { setCommuneView(null); setRueSearch(""); }}>{sel}</Btn>
+  <span style={{ color: "#D1D1D6", fontSize: 14 }}>›</span>
+  <span style={{ fontSize: 14, fontWeight: 700, color: "#1D1D1F" }}>{cv.v}</span>
+</div>
+
+{/* Header card */}
+<Card style={{ marginBottom: 16, padding: 20 }}>
+  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
     <div>
-      <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: -0.5, color: "#1D1D1F" }}>{c.v}</div>
-      <div style={{ fontSize: 12, color: "#AEAEB2", marginTop: 2 }}>{c.p.toLocaleString("fr-FR")} prises · {talc ? "TALC" : "Stratygo"}</div>
+      <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, letterSpacing: -0.6 }}>{cv.v}</h2>
+      <div style={{ fontSize: 13, color: "#6E6E73", marginTop: 3 }}>{cv.p.toLocaleString("fr-FR")} prises · Dept {cvDept}</div>
     </div>
-    <Badge color={talc ? "#FF9F0A" : "#6E6E73"}>{talc ? "TALC" : "Stratygo"}</Badge>
+    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+      <Badge color={cvTalc ? "#FF9F0A" : "#6E6E73"}>{cvTalc ? "TALC" : "Stratygo"}</Badge>
+      <Badge color={cv.z === "H" ? "#FF3B30" : "#0071E3"}>{cv.z === "H" ? "Haute densité" : "Standard"}</Badge>
+    </div>
   </div>
-  <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 90, marginBottom: 12 }}>
-    {vals.map(function(v) {
-      var h = maxVal > 0 ? Math.max(v.count / maxVal * 70, v.count > 0 ? 6 : 0) : 0;
-      var isSelected = month === v.mk;
-      var col = v.count === 0 ? "#E5E5EA" : isSelected ? "#0071E3" : (talc ? "#FF9F0A" : "#34C759");
+  {/* 6-month bar chart */}
+  <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 80 }}>
+    {cvVals.map(function(v) {
+      var h = Math.max(v.count / cvMax * 60, v.count > 0 ? 6 : 2);
+      var isCur = month === v.mk;
+      var col = v.count === 0 ? "#E5E5EA" : isCur ? "#0071E3" : cvColor;
+      var lbl = v.label.split(" ");
       return (
-        <div key={v.mk} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: v.count > 0 ? "#1D1D1F" : "#D1D1D6" }}>{v.count || ""}</div>
-          <div style={{ width: "100%", height: 70, display: "flex", alignItems: "flex-end" }}>
-            <div style={{ width: "100%", height: h + "px", borderRadius: "4px 4px 0 0", background: col, transition: "height 0.2s" }} />
+        <div key={v.mk} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: v.count > 0 ? (isCur ? "#0071E3" : "#1D1D1F") : "#E5E5EA" }}>{v.count || ""}</div>
+          <div style={{ width: "100%", height: 60, display: "flex", alignItems: "flex-end" }}>
+            <div style={{ width: "100%", height: h, borderRadius: "4px 4px 0 0", background: col }} />
           </div>
-          <div style={{ fontSize: 10, color: isSelected ? "#0071E3" : "#AEAEB2", fontWeight: isSelected ? 700 : 400, textAlign: "center" }}>{v.label.split(" ")[0]}<br/>{v.label.split(" ")[1]}</div>
+          <div style={{ fontSize: 9, color: isCur ? "#0071E3" : "#AEAEB2", fontWeight: isCur ? 700 : 400, textAlign: "center", lineHeight: 1.2 }}>{lbl[0]}<br/>{lbl[1]}</div>
         </div>
       );
     })}
   </div>
-  <div style={{ borderTop: "1px solid #F5F5F7", paddingTop: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-    <span style={{ fontSize: 13, color: "#6E6E73" }}>Total 6 mois</span>
-    <span style={{ fontSize: 20, fontWeight: 800, color: "#1D1D1F" }}>{vals.reduce(function(s, v) { return s + v.count; }, 0)}</span>
+  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12, paddingTop: 12, borderTop: "1px solid #F5F5F7" }}>
+    <span style={{ fontSize: 12, color: "#6E6E73" }}>Total 6 derniers mois</span>
+    <span style={{ fontSize: 18, fontWeight: 800, color: cvTotal6 > 0 ? "#1D1D1F" : "#D1D1D6" }}>{cvTotal6} contrat{cvTotal6 > 1 ? "s" : ""}</span>
   </div>
-</div>
+</Card>
+
+{/* Street search */}
+<Card style={{ padding: 20 }}>
+  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+    <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#1D1D1F", flex: 1 }}>Rues</h3>
+    <span style={{ fontSize: 12, color: "#AEAEB2" }}>{cvContracts.length} contrat{cvContracts.length > 1 ? "s" : ""} · {rueList.length} rue{rueList.length > 1 ? "s" : ""}</span>
+  </div>
+  <div style={{ position: "relative", marginBottom: 16 }}>
+    <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 14, color: "#AEAEB2", pointerEvents: "none" }}>🔍</span>
+    <input
+      value={rueSearch}
+      onChange={function(e) { setRueSearch(e.target.value); }}
+      placeholder="Rechercher une rue..."
+      style={{ width: "100%", boxSizing: "border-box", paddingLeft: 36, paddingRight: 12, paddingTop: 10, paddingBottom: 10, fontSize: 14, border: "1.5px solid #E5E5EA", borderRadius: 10, outline: "none", fontFamily: "inherit", background: "#FAFAFA", color: "#1D1D1F" }}
+    />
+    {rueSearch && (
+      <button onClick={function() { setRueSearch(""); }} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#AEAEB2", fontSize: 16, padding: 2 }}>×</button>
+    )}
+  </div>
+  {rueFiltered.length === 0 ? (
+    <div style={{ textAlign: "center", padding: "24px 0", color: "#AEAEB2", fontSize: 13 }}>Aucune rue trouvée</div>
+  ) : (
+    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      {rueFiltered.map(function(entry, i) {
+        var rue = entry[0]; var info = entry[1];
+        var coms = Object.entries(info.commerciaux).sort(function(a, b) { return b[1] - a[1]; });
+        return (
+          <div key={rue} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", background: i % 2 ? "#FAFAFA" : "#fff", borderRadius: 8 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#1D1D1F", marginBottom: 6, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{rue}</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                {coms.map(function(ce) {
+                  var firstName = ce[0].split(" ")[0];
+                  return (
+                    <span key={ce[0]} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: getComColor(ce[0]), background: getComColor(ce[0]) + "18", borderRadius: 20, paddingLeft: 8, paddingRight: 8, paddingTop: 3, paddingBottom: 3 }}>
+                      {firstName}{ce[1] > 1 ? <span style={{ fontWeight: 800 }}>×{ce[1]}</span> : ""}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+            <div style={{ textAlign: "right", flexShrink: 0 }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: cvColor }}>{info.count}</div>
+              <div style={{ fontSize: 10, color: "#AEAEB2" }}>contrat{info.count > 1 ? "s" : ""}</div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  )}
+</Card>
 </div>
 );
 }
 
+// === SECTOR DETAIL VIEW ===
 if (sel) {
 var isTalc = selSource === "TALC";
 var jData = isTalc ? JACHERE_TALC[sel] : JACHERE[sel];
@@ -2656,7 +2754,6 @@ return (bc / (b.p || 1)) - (ac / (a.p || 1));
 });
 return (
 <div>
-<CommuneModal />
 <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
 <Btn v="ghost" onClick={function() { setSel(null); setSelSource(null); }}>← Retour</Btn>
 <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>{sel}</h2>
@@ -2684,7 +2781,7 @@ var cc = isTalc ? getTalcC(c, jData.dept, month) : getC(c, jData.dept, month);
 var t = c.p ? (cc / c.p * 100) : 0;
 var col = t > 0.8 ? "#34C759" : t > 0.3 ? "#FF9F0A" : cc === 0 ? "rgba(0,0,0,0.08)" : "#FF3B30";
 return (
-<div key={c.v} onClick={function() { setCommuneModal({ commune: c, dept: jData.dept, isTalc: isTalc }); }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: i % 2 ? "#FAFAFA" : "#fff", borderRadius: 8, cursor: "pointer" }}>
+<div key={c.v} onClick={function() { setCommuneView({ commune: c, dept: jData.dept, isTalc: isTalc }); setRueSearch(""); }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: i % 2 ? "#FAFAFA" : "#fff", borderRadius: 8, cursor: "pointer" }}>
 <div style={{ width: 24, textAlign: "center", fontSize: 12, fontWeight: 700, color: "#AEAEB2" }}>{i + 1}</div>
 <div style={{ flex: 1 }}>
 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -2710,6 +2807,7 @@ return (
 );
 }
 
+// === OVERVIEW ===
 return (
 <div>
 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 10 }}>
