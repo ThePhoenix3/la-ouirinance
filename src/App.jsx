@@ -1,5 +1,18 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import carnetData from "./data.json";
+import { initializeApp } from "firebase/app";
+import { getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot } from "firebase/firestore";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCv5Rtux-734LhoBW5H07duvYeMC5HQoBA",
+  authDomain: "la-ouirinance.firebaseapp.com",
+  projectId: "la-ouirinance",
+  storageBucket: "la-ouirinance.firebasestorage.app",
+  messagingSenderId: "372728638985",
+  appId: "1:372728638985:web:b3b7be83f87679641292d8",
+};
+const fbApp = initializeApp(firebaseConfig);
+const db = getFirestore(fbApp);
 
 const STORAGE_KEYS = { team: "agency-team-v4", cars: "agency-cars-v4", contracts: "agency-contracts-v3", dailyPlan: "agency-daily-plan-v4", objectives: "agency-objectives-v3", groups: "agency-groups-v1" };
 
@@ -138,9 +151,9 @@ function getPendingResolutions(contracts, team, dailyPlan, cars) {
 }
 
 const store = {
-get: async (key) => { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch (e) { return null; } },
-set: async (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) { console.error(e); } },
-delete: async (key) => { try { localStorage.removeItem(key); } catch (e) {} },
+get: async function(key) { try { var snap = await getDoc(doc(db, "agency", key)); return snap.exists() ? snap.data().data : null; } catch(e) { return null; } },
+set: async function(key, val) { try { await setDoc(doc(db, "agency", key), { data: val }); } catch(e) { console.error(e); } },
+delete: async function(key) { try { await deleteDoc(doc(db, "agency", key)); } catch(e) {} },
 };
 
 const ROLES = ["Manager", "Assistant Manager", "Formateur", "Confirme", "Debutant"];
@@ -1534,6 +1547,12 @@ const [lastSync, setLastSync] = useState(null);
 const [groups, setGroups] = useState([]);
 
 useEffect(function() {
+var unsubPlan = onSnapshot(doc(db, "agency", STORAGE_KEYS.dailyPlan), function(snap) {
+  setDailyPlan(snap.exists() ? (snap.data().data || null) : null);
+});
+var unsubObj = onSnapshot(doc(db, "agency", STORAGE_KEYS.objectives), function(snap) {
+  setObjectives(snap.exists() ? (snap.data().data || {}) : {});
+});
 (async function() {
 // Nettoyer les anciennes clés v1/v2
 var oldKeys = ["agency-team-v1","agency-cars-v1","agency-contracts-v1","agency-daily-plan-v1","agency-objectives-v1","agency-team-v2","agency-cars-v2","agency-contracts-v2","agency-daily-plan-v2","agency-objectives-v2"];
@@ -1570,8 +1589,6 @@ var mergedContracts = DEMO_CONTRACTS.map(function(c) {
   return saved ? Object.assign({}, c, saved) : c;
 });
 setContracts(mergedContracts);
-setDailyPlan(await store.get(STORAGE_KEYS.dailyPlan) || null);
-setObjectives(await store.get(STORAGE_KEYS.objectives) || {});
 var loadedTeam = await store.get(STORAGE_KEYS.team) || DEMO_TEAM;
 var loadedGroups = await store.get(STORAGE_KEYS.groups) || [];
 var renamedGroups = loadedGroups.map(function(g) {
@@ -1585,6 +1602,7 @@ store.set(STORAGE_KEYS.groups, renamedGroups);
 setGroups(renamedGroups);
 setLoading(false);
 })();
+return function() { unsubPlan(); unsubObj(); };
 }, []);
 
 // ─── Poll du serveur Flask local toutes les 60s ───────────────────────────
