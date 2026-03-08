@@ -105,9 +105,15 @@ var CARNET_BY_VILLE_MONTH = {};
     }
   });
 })();
-function getTalcC(commune, month) {
+function getTalcC(commune, dept, month) {
   var v = commune.v;
   if (!month) return CARNET_BY_VILLE_ALL[v] || 0;
+  // Use MONTHLY (from Excel) for historical months, like Stratygo
+  var dataKey = MONTH_KEY_MAP[month] || month;
+  var key = v + "|" + dept;
+  var m = MONTHLY[key];
+  if (m && m[dataKey] !== undefined) return m[dataKey] || 0;
+  // Fallback to live carnet data
   return (CARNET_BY_VILLE_MONTH[v] && CARNET_BY_VILLE_MONTH[v][month]) || 0;
 }
 
@@ -2513,7 +2519,7 @@ var jName = entry[0]; var jData = entry[1];
 jData.communes.forEach(function(commune) {
 var key = commune.v + "|" + jData.dept;
 var coords = GPS[key]; if (!coords) return;
-var c = getTalcC(commune, month);
+var c = getTalcC(commune, jData.dept, month);
 var taux = commune.p > 0 ? (c / commune.p * 100) : 0;
 var color = c === 0 ? "#AEAEB2" : taux > 0.8 ? "#34C759" : taux > 0.3 ? "#FF9F0A" : "#FF3B30";
 var radius = Math.max(5, Math.min(22, Math.sqrt(c) * 2.5 + 4));
@@ -2566,7 +2572,7 @@ return { name: name, dept: data.dept, communes: data.communes, tp: tp, tc: tc, t
 var statsTalc = Object.entries(JACHERE_TALC).map(function(entry) {
 var name = entry[0]; var data = entry[1];
 var tp = data.communes.reduce(function(s, c) { return s + c.p; }, 0);
-var tc = data.communes.reduce(function(s, c) { return s + getTalcC(c, month); }, 0);
+var tc = data.communes.reduce(function(s, c) { return s + getTalcC(c, data.dept, month); }, 0);
 return { name: name, dept: data.dept, communes: data.communes, tp: tp, tc: tc, taux: tp ? (tc / tp * 100) : 0, source: "TALC" };
 });
 
@@ -2575,8 +2581,8 @@ var isTalc = selSource === "TALC";
 var jData = isTalc ? JACHERE_TALC[sel] : JACHERE[sel];
 var s = (isTalc ? statsTalc : stats).find(function(x) { return x.name === sel; });
 var sorted = jData.communes.slice().sort(function(a, b) {
-var ac = isTalc ? getTalcC(a, month) : getC(a, jData.dept, month);
-var bc = isTalc ? getTalcC(b, month) : getC(b, jData.dept, month);
+var ac = isTalc ? getTalcC(a, jData.dept, month) : getC(a, jData.dept, month);
+var bc = isTalc ? getTalcC(b, jData.dept, month) : getC(b, jData.dept, month);
 if (sortBy === "c") return bc - ac;
 if (sortBy === "p") return b.p - a.p;
 return (bc / (b.p || 1)) - (ac / (a.p || 1));
@@ -2606,7 +2612,7 @@ return (
 </div>
 </div>
 {sorted.map(function(c, i) {
-var cc = isTalc ? getTalcC(c, month) : getC(c, jData.dept, month);
+var cc = isTalc ? getTalcC(c, jData.dept, month) : getC(c, jData.dept, month);
 var t = c.p ? (cc / c.p * 100) : 0;
 var col = t > 0.8 ? "#34C759" : t > 0.3 ? "#FF9F0A" : cc === 0 ? "rgba(0,0,0,0.08)" : "#FF3B30";
 return (
