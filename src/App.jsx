@@ -1408,6 +1408,7 @@ var TABS = [
 { id: "cars", label: "Voitures" },
 { id: "team", label: "Équipe" },
 { id: "map", label: "Carte" },
+{ id: "secteurs", label: "Secteurs" },
 { id: "import", label: "Import" },
 { id: "carnet", label: "Carnet" },
 ];
@@ -1590,7 +1591,8 @@ return (
     {tab === "team" && <TeamTab team={team} saveTeam={saveTeam} contracts={contracts} groups={groups} saveGroups={saveGroups} />}
     {tab === "cars" && <CarsTab team={team} cars={cars} saveCars={saveCars} dailyPlan={dailyPlan} saveDailyPlan={saveDailyPlan} groups={groups} />}
     {tab === "contracts" && <ContractsTab contracts={contracts} team={team} dailyPlan={dailyPlan} saveContracts={saveContracts} />}
-    {tab === "map" && <MapTab dailyPlan={dailyPlan} team={team} cars={cars} />}
+    {tab === "map" && <MapTab />}
+    {tab === "secteurs" && <SecteursTab />}
     {tab === "objectifs" && <ObjectifsTab team={team} contracts={contracts} objectives={objectives} saveObjectives={saveObjectives} />}
     {tab === "cloche" && <ClocheTab team={team} contracts={contracts} />}
     {tab === "import" && <ImportTab team={team} saveTeam={saveTeam} contracts={contracts} saveContracts={saveContracts} />}
@@ -2462,29 +2464,11 @@ var m = MONTHLY[key];
 return m ? (m[dataKey] || 0) : 0;
 }
 
-function MapTab({ dailyPlan, team, cars }) {
+function MapTab() {
 var mapRef = useRef(null);
 var mapInstance = useRef(null);
-const [sel, setSel] = useState(null);
-const [selSource, setSelSource] = useState(null);
-const [sortBy, setSortBy] = useState("c");
 const [mapReady, setMapReady] = useState(false);
 const [month, setMonth] = useState("");
-
-var stats = Object.entries(JACHERE).map(function(entry) {
-var name = entry[0]; var data = entry[1];
-var tp = data.communes.reduce(function(s, c) { return s + c.p; }, 0);
-var tc = data.communes.reduce(function(s, c) { return s + getC(c, data.dept, month); }, 0);
-return { name: name, dept: data.dept, communes: data.communes, tp: tp, tc: tc, taux: tp ? (tc / tp * 100) : 0, source: "JACHERE" };
-});
-var statsTalc = Object.entries(JACHERE_TALC).map(function(entry) {
-var name = entry[0]; var data = entry[1];
-var tp = data.communes.reduce(function(s, c) { return s + c.p; }, 0);
-var tc = data.communes.reduce(function(s, c) { return s + getTalcC(c, month); }, 0);
-return { name: name, dept: data.dept, communes: data.communes, tp: tp, tc: tc, taux: tp ? (tc / tp * 100) : 0, source: "TALC" };
-});
-var totalC = stats.reduce(function(s, j) { return s + j.tc; }, 0);
-var totalP = stats.reduce(function(s, j) { return s + j.tp; }, 0);
 
 useEffect(function() {
 if (window.L) { setMapReady(true); return; }
@@ -2506,7 +2490,6 @@ var L = window.L; if (!L) return;
 var map = L.map(mapRef.current, { zoomControl: true, scrollWheelZoom: true }).setView([46.6, -1.1], 8);
 mapInstance.current = map;
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "OSM", maxZoom: 16 }).addTo(map);
-
 setTimeout(function() {
 map.invalidateSize();
 Object.entries(JACHERE).forEach(function(entry) {
@@ -2518,15 +2501,10 @@ var c = getC(commune, jData.dept, month);
 var taux = commune.p > 0 ? (c / commune.p * 100) : 0;
 var color = c === 0 ? "#AEAEB2" : taux > 0.8 ? "#34C759" : taux > 0.3 ? "#FF9F0A" : "#FF3B30";
 var radius = Math.max(5, Math.min(22, Math.sqrt(c) * 2.5));
-L.circleMarker([coords[0], coords[1]], {
-radius: radius, fillColor: color, color: "#fff", weight: 2, opacity: 1, fillOpacity: 0.85,
-}).addTo(map).bindPopup(
-"<div style='font-family:-apple-system,sans-serif;min-width:180px'>" +
-"<b style='font-size:14px'>" + commune.v + "</b><br>" +
+L.circleMarker([coords[0], coords[1]], { radius: radius, fillColor: color, color: "#fff", weight: 2, opacity: 1, fillOpacity: 0.85 }).addTo(map).bindPopup(
+"<div style='font-family:-apple-system,sans-serif;min-width:180px'><b style='font-size:14px'>" + commune.v + "</b><br>" +
 "<span style='font-size:11px;color:#6B7280'>" + jName + " | " + (commune.z === "H" ? "Haute" : "Standard") + "</span><hr style='margin:6px 0;border:none;border-top:1px solid #eee'>" +
-"Prises: <b>" + commune.p.toLocaleString("fr-FR") + "</b><br>" +
-"Contrats: <b style='color:" + color + "'>" + c + "</b><br>" +
-"Taux: <b style='color:" + color + "'>" + taux.toFixed(2) + "%</b></div>"
+"Prises: <b>" + commune.p.toLocaleString("fr-FR") + "</b><br>Contrats: <b style='color:" + color + "'>" + c + "</b><br>Taux: <b style='color:" + color + "'>" + taux.toFixed(2) + "%</b></div>"
 );
 });
 });
@@ -2539,21 +2517,58 @@ var c = getTalcC(commune, month);
 var taux = commune.p > 0 ? (c / commune.p * 100) : 0;
 var color = c === 0 ? "#AEAEB2" : taux > 0.8 ? "#34C759" : taux > 0.3 ? "#FF9F0A" : "#FF3B30";
 var radius = Math.max(5, Math.min(22, Math.sqrt(c) * 2.5 + 4));
-L.circleMarker([coords[0], coords[1]], {
-radius: radius, fillColor: color, color: "#FF9F0A", weight: 3, opacity: 1, fillOpacity: 0.85,
-}).addTo(map).bindPopup(
-"<div style='font-family:-apple-system,sans-serif;min-width:180px'>" +
-"<b style='font-size:14px'>" + commune.v + "</b> <span style='font-size:10px;background:#FF9F0A;color:#fff;border-radius:4px;padding:1px 5px;font-weight:700'>TALC</span><br>" +
+L.circleMarker([coords[0], coords[1]], { radius: radius, fillColor: color, color: "#FF9F0A", weight: 3, opacity: 1, fillOpacity: 0.85 }).addTo(map).bindPopup(
+"<div style='font-family:-apple-system,sans-serif;min-width:180px'><b style='font-size:14px'>" + commune.v + "</b> <span style='font-size:10px;background:#FF9F0A;color:#fff;border-radius:4px;padding:1px 5px;font-weight:700'>TALC</span><br>" +
 "<span style='font-size:11px;color:#6B7280'>" + jName + " | Zone " + commune.z + (commune.z === "H" ? " (+5€)" : " (-15€)") + "</span><hr style='margin:6px 0;border:none;border-top:1px solid #eee'>" +
-"Prises: <b>" + commune.p.toLocaleString("fr-FR") + "</b><br>" +
-"Contrats: <b style='color:" + color + "'>" + c + "</b><br>" +
-"Taux: <b style='color:" + color + "'>" + taux.toFixed(2) + "%</b></div>"
+"Prises: <b>" + commune.p.toLocaleString("fr-FR") + "</b><br>Contrats: <b style='color:" + color + "'>" + c + "</b><br>Taux: <b style='color:" + color + "'>" + taux.toFixed(2) + "%</b></div>"
 );
 });
 });
 }, 400);
 return function() { if (mapInstance.current) { mapInstance.current.remove(); mapInstance.current = null; } };
 }, [mapReady, month]);
+
+return (
+<div>
+<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
+<h2 style={{ margin: 0, fontSize: 17, fontWeight: 600, letterSpacing: -0.4, color: "#1D1D1F" }}>Carte des jacheres</h2>
+<Sel value={month} onChange={setMonth} placeholder="Tous les mois" options={MONTHS_ORDER.map(function(m) { return { value: m, label: MONTHS_LABELS[m] }; })} style={{ minWidth: 150 }} />
+</div>
+<Card style={{ padding: 0, overflow: "hidden", marginBottom: 12, borderRadius: 14 }}>
+<div ref={mapRef} style={{ width: "100%", height: 560 }}>
+{!mapReady && <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 560, color: "#AEAEB2" }}>Chargement...</div>}
+</div>
+</Card>
+<div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+<div style={{ display: "flex", alignItems: "center", gap: 4 }}><div style={{ width: 12, height: 12, borderRadius: "50%", background: "#34C759" }} /><span style={{ fontSize: 11, color: "#6E6E73" }}>Bon taux</span></div>
+<div style={{ display: "flex", alignItems: "center", gap: 4 }}><div style={{ width: 12, height: 12, borderRadius: "50%", background: "#FF9F0A" }} /><span style={{ fontSize: 11, color: "#6E6E73" }}>Moyen</span></div>
+<div style={{ display: "flex", alignItems: "center", gap: 4 }}><div style={{ width: 12, height: 12, borderRadius: "50%", background: "#FF3B30" }} /><span style={{ fontSize: 11, color: "#6E6E73" }}>Faible</span></div>
+<div style={{ display: "flex", alignItems: "center", gap: 4 }}><div style={{ width: 12, height: 12, borderRadius: "50%", background: "#AEAEB2" }} /><span style={{ fontSize: 11, color: "#6E6E73" }}>0 contrats</span></div>
+<div style={{ marginLeft: 8, display: "flex", alignItems: "center", gap: 4 }}><div style={{ width: 12, height: 12, borderRadius: "50%", background: "#888", border: "2.5px solid #FF9F0A" }} /><span style={{ fontSize: 11, color: "#6E6E73" }}>TALC</span></div>
+<div style={{ display: "flex", alignItems: "center", gap: 4 }}><div style={{ width: 12, height: 12, borderRadius: "50%", background: "#888", border: "2px solid #fff" }} /><span style={{ fontSize: 11, color: "#6E6E73" }}>Stratygo</span></div>
+</div>
+</div>
+);
+}
+
+function SecteursTab() {
+const [sel, setSel] = useState(null);
+const [selSource, setSelSource] = useState(null);
+const [sortBy, setSortBy] = useState("c");
+const [month, setMonth] = useState("");
+
+var stats = Object.entries(JACHERE).map(function(entry) {
+var name = entry[0]; var data = entry[1];
+var tp = data.communes.reduce(function(s, c) { return s + c.p; }, 0);
+var tc = data.communes.reduce(function(s, c) { return s + getC(c, data.dept, month); }, 0);
+return { name: name, dept: data.dept, communes: data.communes, tp: tp, tc: tc, taux: tp ? (tc / tp * 100) : 0, source: "JACHERE" };
+});
+var statsTalc = Object.entries(JACHERE_TALC).map(function(entry) {
+var name = entry[0]; var data = entry[1];
+var tp = data.communes.reduce(function(s, c) { return s + c.p; }, 0);
+var tc = data.communes.reduce(function(s, c) { return s + getTalcC(c, month); }, 0);
+return { name: name, dept: data.dept, communes: data.communes, tp: tp, tc: tc, taux: tp ? (tc / tp * 100) : 0, source: "TALC" };
+});
 
 if (sel) {
 var isTalc = selSource === "TALC";
@@ -2567,12 +2582,11 @@ if (sortBy === "p") return b.p - a.p;
 return (bc / (b.p || 1)) - (ac / (a.p || 1));
 });
 return (
-
 <div>
 <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-<Btn v="ghost" onClick={function() { setSel(null); setSelSource(null); }}>Retour</Btn>
+<Btn v="ghost" onClick={function() { setSel(null); setSelSource(null); }}>← Retour</Btn>
 <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>{sel}</h2>
-{isTalc ? <Badge color="#FF9F0A">TALC</Badge> : <Badge color={OP_COLORS.Free}>Free</Badge>}
+{isTalc ? <Badge color="#FF9F0A">TALC</Badge> : <Badge color={OP_COLORS.Free}>Stratygo</Badge>}
 {!isTalc && DEPT_ZONES[jData.dept] && DEPT_ZONES[jData.dept].b && <Badge color={OP_COLORS.Bouygues}>Bouygues</Badge>}
 <div style={{ marginLeft: "auto" }}><Sel value={month} onChange={setMonth} placeholder="Tous les mois" options={MONTHS_ORDER.map(function(m) { return { value: m, label: MONTHS_LABELS[m] }; })} style={{ minWidth: 140 }} /></div>
 </div>
@@ -2623,27 +2637,13 @@ return (
 }
 
 return (
-
 <div>
 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 10 }}>
 <div>
-<h2 style={{ margin: 0, fontSize: 17, fontWeight: 600, letterSpacing: -0.4, color: "#1D1D1F" }}>Carte des jacheres</h2>
-<p style={{ margin: "4px 0 0", fontSize: 13, color: "#6E6E73" }}>{totalC} contrats Stratygo · {totalP.toLocaleString("fr-FR")} prises</p>
+<h2 style={{ margin: 0, fontSize: 17, fontWeight: 600, letterSpacing: -0.4, color: "#1D1D1F" }}>Secteurs</h2>
+<p style={{ margin: "4px 0 0", fontSize: 13, color: "#6E6E73" }}>{stats.length} secteurs Stratygo · {statsTalc.length} secteurs TALC</p>
 </div>
 <Sel value={month} onChange={setMonth} placeholder="Tous les mois" options={MONTHS_ORDER.map(function(m) { return { value: m, label: MONTHS_LABELS[m] }; })} style={{ minWidth: 150 }} />
-</div>
-<Card style={{ padding: 0, overflow: "hidden", marginBottom: 16, borderRadius: 14 }}>
-<div ref={mapRef} style={{ width: "100%", height: 480 }}>
-{!mapReady && <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 480, color: "#AEAEB2" }}>Chargement...</div>}
-</div>
-</Card>
-<div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
-<div style={{ display: "flex", alignItems: "center", gap: 4 }}><div style={{ width: 12, height: 12, borderRadius: "50%", background: "#34C759" }} /><span style={{ fontSize: 11, color: "#6E6E73" }}>Bon taux</span></div>
-<div style={{ display: "flex", alignItems: "center", gap: 4 }}><div style={{ width: 12, height: 12, borderRadius: "50%", background: "#FF9F0A" }} /><span style={{ fontSize: 11, color: "#6E6E73" }}>Moyen</span></div>
-<div style={{ display: "flex", alignItems: "center", gap: 4 }}><div style={{ width: 12, height: 12, borderRadius: "50%", background: "#FF3B30" }} /><span style={{ fontSize: 11, color: "#6E6E73" }}>Faible</span></div>
-<div style={{ display: "flex", alignItems: "center", gap: 4 }}><div style={{ width: 12, height: 12, borderRadius: "50%", background: "#AEAEB2" }} /><span style={{ fontSize: 11, color: "#6E6E73" }}>0 contrats</span></div>
-<div style={{ marginLeft: 8, display: "flex", alignItems: "center", gap: 4 }}><div style={{ width: 12, height: 12, borderRadius: "50%", background: "#888", border: "2.5px solid #FF9F0A" }} /><span style={{ fontSize: 11, color: "#6E6E73" }}>TALC (bordure orange)</span></div>
-<div style={{ display: "flex", alignItems: "center", gap: 4 }}><div style={{ width: 12, height: 12, borderRadius: "50%", background: "#888", border: "2px solid #fff" }} /><span style={{ fontSize: 11, color: "#6E6E73" }}>Stratygo (bordure blanche)</span></div>
 </div>
 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
 {stats.concat(statsTalc).sort(function(a, b) { return b.tc - a.tc; }).map(function(j) {
@@ -2654,10 +2654,10 @@ return (
 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
 <div>
 <div style={{ fontSize: 14, fontWeight: 600, letterSpacing: -0.3, color: "#1D1D1F" }}>{j.name}</div>
-<div style={{ fontSize: 12, color: "#AEAEB2", marginTop: 2 }}>{j.communes.length} com. - {j.tp.toLocaleString("fr-FR")} prises</div>
+<div style={{ fontSize: 12, color: "#AEAEB2", marginTop: 2 }}>{j.communes.length} com. · {j.tp.toLocaleString("fr-FR")} prises</div>
 </div>
 <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-{isTalcCard && <Badge color="#FF9F0A">TALC</Badge>}
+{isTalcCard ? <Badge color="#FF9F0A">TALC</Badge> : <Badge color="#6E6E73">Stratygo</Badge>}
 <Badge color={col}>{j.taux.toFixed(2)}%</Badge>
 </div>
 </div>
