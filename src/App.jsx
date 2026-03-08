@@ -109,13 +109,12 @@ var CARNET_BY_VILLE_MONTH = {};
 function getTalcC(commune, dept, month) {
   var v = commune.v;
   if (!month) return CARNET_BY_VILLE_ALL[v] || 0;
-  // Use MONTHLY (from Excel) for historical months, like Stratygo
+  // Carnet first (live, accurate) — fallback to Excel MONTHLY for old months not in carnet
+  var carnetVal = (CARNET_BY_VILLE_MONTH[v] && CARNET_BY_VILLE_MONTH[v][month]) || 0;
+  if (carnetVal > 0) return carnetVal;
   var dataKey = MONTH_KEY_MAP[month] || month;
-  var key = v + "|" + dept;
-  var m = MONTHLY[key];
-  if (m && m[dataKey] !== undefined) return m[dataKey] || 0;
-  // Fallback to live carnet data
-  return (CARNET_BY_VILLE_MONTH[v] && CARNET_BY_VILLE_MONTH[v][month]) || 0;
+  var m = MONTHLY[v + "|" + dept];
+  return m ? (m[dataKey] || 0) : 0;
 }
 
 const DEPT_ZONES = {
@@ -2481,11 +2480,12 @@ var MONTHLY = {"VERTOU|44": {"fev": 2, "jan": 3, "nov": 8, "sep": 3, "aou": 2, "
 
 function getC(commune, dept, month) {
 if (!month) return commune.c || 0;
+// Carnet first (live, accurate) — fallback to Excel MONTHLY for old months not in carnet
+var carnetVal = (CARNET_BY_VILLE_MONTH[commune.v] && CARNET_BY_VILLE_MONTH[commune.v][month]) || 0;
+if (carnetVal > 0) return carnetVal;
 var dataKey = MONTH_KEY_MAP[month] || month;
-var key = commune.v + "|" + dept;
-var m = MONTHLY[key];
-if (m && m[dataKey] !== undefined) return m[dataKey] || 0;
-return (CARNET_BY_VILLE_MONTH[commune.v] && CARNET_BY_VILLE_MONTH[commune.v][month]) || 0;
+var m = MONTHLY[commune.v + "|" + dept];
+return m ? (m[dataKey] || 0) : 0;
 }
 
 function MapTab() {
