@@ -2580,6 +2580,7 @@ const [sel, setSel] = useState(null);
 const [selSource, setSelSource] = useState(null);
 const [sortBy, setSortBy] = useState("c");
 const [month, setMonth] = useState("");
+const [communeModal, setCommuneModal] = useState(null); // { commune, dept, isTalc }
 
 var stats = Object.entries(JACHERE).map(function(entry) {
 var name = entry[0]; var data = entry[1];
@@ -2594,6 +2595,54 @@ var tc = data.communes.reduce(function(s, c) { return s + getTalcC(c, data.dept,
 return { name: name, dept: data.dept, communes: data.communes, tp: tp, tc: tc, taux: tp ? (tc / tp * 100) : 0, source: "TALC" };
 });
 
+var last6Months = MONTHS_ORDER.slice(-6);
+
+function CommuneModal() {
+if (!communeModal) return null;
+var c = communeModal.commune;
+var dept = communeModal.dept;
+var talc = communeModal.isTalc;
+var months = last6Months;
+var vals = months.map(function(mk) {
+  return { mk: mk, label: MONTHS_LABELS[mk], count: talc ? getTalcC(c, dept, mk) : getC(c, dept, mk) };
+});
+var maxVal = Math.max.apply(null, vals.map(function(v) { return v.count; })) || 1;
+return (
+<div onClick={function() { setCommuneModal(null); }} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 1000, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+<div onClick={function(e) { e.stopPropagation(); }} style={{ background: "#fff", borderRadius: "20px 20px 0 0", padding: "24px 20px 32px", width: "100%", maxWidth: 520, boxShadow: "0 -4px 40px rgba(0,0,0,0.15)" }}>
+  <div style={{ width: 36, height: 4, borderRadius: 2, background: "#D1D1D6", margin: "0 auto 20px" }} />
+  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+    <div>
+      <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: -0.5, color: "#1D1D1F" }}>{c.v}</div>
+      <div style={{ fontSize: 12, color: "#AEAEB2", marginTop: 2 }}>{c.p.toLocaleString("fr-FR")} prises · {talc ? "TALC" : "Stratygo"}</div>
+    </div>
+    <Badge color={talc ? "#FF9F0A" : "#6E6E73"}>{talc ? "TALC" : "Stratygo"}</Badge>
+  </div>
+  <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 90, marginBottom: 12 }}>
+    {vals.map(function(v) {
+      var h = maxVal > 0 ? Math.max(v.count / maxVal * 70, v.count > 0 ? 6 : 0) : 0;
+      var isSelected = month === v.mk;
+      var col = v.count === 0 ? "#E5E5EA" : isSelected ? "#0071E3" : (talc ? "#FF9F0A" : "#34C759");
+      return (
+        <div key={v.mk} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: v.count > 0 ? "#1D1D1F" : "#D1D1D6" }}>{v.count || ""}</div>
+          <div style={{ width: "100%", height: 70, display: "flex", alignItems: "flex-end" }}>
+            <div style={{ width: "100%", height: h + "px", borderRadius: "4px 4px 0 0", background: col, transition: "height 0.2s" }} />
+          </div>
+          <div style={{ fontSize: 10, color: isSelected ? "#0071E3" : "#AEAEB2", fontWeight: isSelected ? 700 : 400, textAlign: "center" }}>{v.label.split(" ")[0]}<br/>{v.label.split(" ")[1]}</div>
+        </div>
+      );
+    })}
+  </div>
+  <div style={{ borderTop: "1px solid #F5F5F7", paddingTop: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+    <span style={{ fontSize: 13, color: "#6E6E73" }}>Total 6 mois</span>
+    <span style={{ fontSize: 20, fontWeight: 800, color: "#1D1D1F" }}>{vals.reduce(function(s, v) { return s + v.count; }, 0)}</span>
+  </div>
+</div>
+</div>
+);
+}
+
 if (sel) {
 var isTalc = selSource === "TALC";
 var jData = isTalc ? JACHERE_TALC[sel] : JACHERE[sel];
@@ -2607,6 +2656,7 @@ return (bc / (b.p || 1)) - (ac / (a.p || 1));
 });
 return (
 <div>
+<CommuneModal />
 <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
 <Btn v="ghost" onClick={function() { setSel(null); setSelSource(null); }}>← Retour</Btn>
 <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>{sel}</h2>
@@ -2634,7 +2684,7 @@ var cc = isTalc ? getTalcC(c, jData.dept, month) : getC(c, jData.dept, month);
 var t = c.p ? (cc / c.p * 100) : 0;
 var col = t > 0.8 ? "#34C759" : t > 0.3 ? "#FF9F0A" : cc === 0 ? "rgba(0,0,0,0.08)" : "#FF3B30";
 return (
-<div key={c.v} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: i % 2 ? "#FAFAFA" : "#fff", borderRadius: 8 }}>
+<div key={c.v} onClick={function() { setCommuneModal({ commune: c, dept: jData.dept, isTalc: isTalc }); }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: i % 2 ? "#FAFAFA" : "#fff", borderRadius: 8, cursor: "pointer" }}>
 <div style={{ width: 24, textAlign: "center", fontSize: 12, fontWeight: 700, color: "#AEAEB2" }}>{i + 1}</div>
 <div style={{ flex: 1 }}>
 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
