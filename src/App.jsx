@@ -2856,7 +2856,7 @@ if (view === "quality") {
     return { name: name, total: cc.length, br: br, rd: rd, at: at, an: an,
       tGlobal: (br + rd) / tot * 100, tBr: br / tot * 100, tRd: rd / tot * 100, tAt: at / tot * 100, tAn: an / tot * 100,
       contracts: cc };
-  }).sort(function(a,b){ return b.tGlobal - a.tGlobal; });
+  }).sort(function(a,b){ return b.total - a.total; });
 
   // ── Detail: one commercial ──────────────────────────────────────────────────
   if (qCom) {
