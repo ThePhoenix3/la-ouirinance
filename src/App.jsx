@@ -4,12 +4,12 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "REPLACE_ME",
-  authDomain: "REPLACE_ME",
-  projectId: "REPLACE_ME",
-  storageBucket: "REPLACE_ME",
-  messagingSenderId: "REPLACE_ME",
-  appId: "REPLACE_ME",
+  apiKey: "AIzaSyCv5Rtux-734LhoBW5H07duvYeMC5HQoBA",
+  authDomain: "la-ouirinance.firebaseapp.com",
+  projectId: "la-ouirinance",
+  storageBucket: "la-ouirinance.firebasestorage.app",
+  messagingSenderId: "372728638985",
+  appId: "1:372728638985:web:b3b7be83f87679641292d8",
 };
 const fbApp = initializeApp(firebaseConfig);
 const db = getFirestore(fbApp);
