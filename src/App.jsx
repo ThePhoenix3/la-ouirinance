@@ -2791,8 +2791,8 @@ if (view === "month") {
 }
 
 if (view === "quality") {
-  function isBranche(c) { return c.status && c.status.indexOf("Branché") === 0; }
-  function isRdv(c) { return c.status && (c.status === "RDV Pris" || c.status === "RDV Pris J+7"); }
+  function isBranche(c) { return c.status && (c.status === "Branché" || c.status === "Branché VRF"); }
+  function isRdv(c) { return c.status && (c.status === "RDV pris" || c.status === "RDV pris J+7"); }
   function isAnnule(c) { return c.status === "Annulé" || c.status === "Résilié"; }
 
   var totalQ = contracts.length || 1;
