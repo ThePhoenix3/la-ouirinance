@@ -1596,7 +1596,7 @@ return (
     {tab === "dashboard" && <DashboardTab team={team} contracts={contracts} dailyPlan={dailyPlan} lastSync={lastSync} scraperStatus={scraperStatus} />}
     {tab === "team" && <TeamTab team={team} saveTeam={saveTeam} contracts={contracts} groups={groups} saveGroups={saveGroups} />}
     {tab === "cars" && <CarsTab team={team} cars={cars} saveCars={saveCars} dailyPlan={dailyPlan} saveDailyPlan={saveDailyPlan} groups={groups} />}
-    {tab === "contracts" && <ContractsTab contracts={contracts} team={team} dailyPlan={dailyPlan} saveContracts={saveContracts} />}
+    {tab === "contracts" && <ContractsTab contracts={contracts} team={team} dailyPlan={dailyPlan} cars={cars} saveContracts={saveContracts} />}
     {tab === "map" && <MapTab />}
     {tab === "secteurs" && <SecteursTab />}
     {tab === "objectifs" && <ObjectifsTab team={team} contracts={contracts} objectives={objectives} saveObjectives={saveObjectives} />}
@@ -2433,7 +2433,7 @@ function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups }) {
 }
 
 // CONTRACTS
-function ContractsTab({ contracts, team, dailyPlan, saveContracts }) {
+function ContractsTab({ contracts, team, dailyPlan, cars, saveContracts }) {
 const [view, setView] = useState(null); // null | "today" | "week" | "month" | "quality"
 const [fD, setFD] = useState("");
 const [fC, setFC] = useState("");
@@ -2543,8 +2543,41 @@ function delta(a, b) {
 
 // ── DETAIL VIEWS ─────────────────────────────────────────────────────────────
 if (view === "today") {
-  var comRanking = topComs(todayC);
-  var maxT = comRanking.length ? comRanking[0][1] : 1;
+  // Build passengerIds for today
+  var todayPassIds = new Set();
+  if (dailyPlan && cars) {
+    cars.forEach(function(car) {
+      var cp = dailyPlan[car.id];
+      if (cp && cp.members) cp.members.forEach(function(id) { todayPassIds.add(id); });
+    });
+  }
+  function isCarInactiveT(car) { return car.driverId ? todayPassIds.has(car.driverId) : false; }
+  function getCarMembersT(car) {
+    var ms = [];
+    if (car.driverId) { var drv = team.find(function(m){ return m.id === car.driverId; }); if (drv) ms.push(drv); }
+    var cp = dailyPlan ? dailyPlan[car.id] : null;
+    if (cp && cp.members) cp.members.forEach(function(id) { var m = team.find(function(t){ return t.id === id; }); if (m) ms.push(m); });
+    return ms;
+  }
+  function personCountT(name) { return todayC.filter(function(c){ return c.commercial === name; }).length; }
+  function memberCommuneT(car, memberId) {
+    if (!dailyPlan || !dailyPlan[car.id]) return "";
+    return (dailyPlan[car.id].memberCommunes || {})[memberId] || "";
+  }
+  function carTotalT(car) {
+    return getCarMembersT(car).reduce(function(sum, m){ return sum + personCountT(m.name); }, 0);
+  }
+  // Find which car a driver rides in (for inactive display)
+  function ridingInCarT(driverId) {
+    if (!dailyPlan || !cars) return null;
+    var found = cars.find(function(car) {
+      var cp = dailyPlan[car.id];
+      return cp && cp.members && cp.members.indexOf(driverId) >= 0;
+    });
+    return found || null;
+  }
+  var carsToShow = cars ? cars.filter(function(car) { return getCarMembersT(car).length > 0; }) : [];
+
   return (
     <div>
       <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:20 }}>
@@ -2555,39 +2588,51 @@ if (view === "today") {
           <span style={{ fontSize:12, color:"#AEAEB2" }}>vs hier ({yestC.length})</span>
         </div>
       </div>
-      <div style={{ display:"flex", gap:12, marginBottom:20, flexWrap:"wrap" }}>
-        <StatCard label="Contrats" value={todayC.length} color="#0071E3" />
-        <StatCard label="Commerciaux actifs" value={new Set(todayC.map(function(c){return c.commercial;})).size} color="#AF52DE" />
-        <StatCard label="Branchés" value={todayC.filter(function(c){ return c.status && c.status.indexOf("Branché")===0; }).length} color="#34C759" />
-      </div>
-      {comRanking.length > 0 && (
-        <Card style={{ marginBottom:16, padding:20 }}>
-          <h3 style={{ margin:"0 0 14px", fontSize:14, fontWeight:700 }}>Classement du jour</h3>
-          {comRanking.map(function(entry, i) {
-            var col = comColor(entry[0]);
-            var pct = entry[1] / maxT * 100;
+      {!dailyPlan || carsToShow.length === 0 ? (
+        <Card><div style={{ textAlign:"center", padding:40, color:"#AEAEB2" }}>Plan voitures non configuré</div></Card>
+      ) : (
+        <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+          {carsToShow.map(function(car) {
+            var inactive = isCarInactiveT(car);
+            var members = getCarMembersT(car);
+            var total = carTotalT(car);
+            var ridingIn = inactive && car.driverId ? ridingInCarT(car.driverId) : null;
             return (
-              <div key={entry[0]} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
-                <div style={{ width:22, fontSize:12, fontWeight:700, color:"#AEAEB2", textAlign:"center" }}>{i+1}</div>
-                <div style={{ width:28, height:28, borderRadius:99, background:col+"20", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                  <span style={{ fontSize:10, fontWeight:800, color:col }}>{entry[0][0]}</span>
+              <Card key={car.id} style={{ padding:0, overflow:"hidden", opacity: inactive ? 0.55 : 1 }}>
+                <div style={{ padding:"12px 16px", background:"#F5F5F7", display:"flex", alignItems:"center", gap:10 }}>
+                  <span style={{ fontSize:14, fontWeight:700, color:"#1D1D1F" }}>{car.name}</span>
+                  {inactive && (
+                    <span style={{ fontSize:11, color:"#FF9F0A", fontWeight:600 }}>
+                      {ridingIn ? "en voiture avec " + ridingIn.name : "inactive"}
+                    </span>
+                  )}
+                  <div style={{ marginLeft:"auto", background: total > 0 ? "#0071E3" : "#E5E5EA", color: total > 0 ? "#fff" : "#AEAEB2", borderRadius:99, fontSize:13, fontWeight:800, padding:"2px 12px", minWidth:28, textAlign:"center" }}>{total}</div>
                 </div>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontSize:13, fontWeight:600, marginBottom:4 }}>{entry[0]}</div>
-                  <div style={{ height:6, borderRadius:3, background:"#F5F5F7" }}>
-                    <div style={{ width:pct+"%", height:"100%", borderRadius:3, background:col }} />
-                  </div>
-                </div>
-                <div style={{ fontSize:18, fontWeight:800, color:col, minWidth:28, textAlign:"right" }}>{entry[1]}</div>
-              </div>
+                {members.map(function(m, i) {
+                  var count = personCountT(m.name);
+                  var commune = memberCommuneT(car, m.id);
+                  var col = comColor(m.name);
+                  var initials = m.name.split(" ").map(function(w){ return w[0]; }).slice(0,2).join("").toUpperCase();
+                  var isDriver = car.driverId === m.id;
+                  return (
+                    <div key={m.id} style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 16px", borderTop: i > 0 ? "1px solid rgba(0,0,0,0.05)" : "none" }}>
+                      <div style={{ width:36, height:36, borderRadius:99, background:col+"20", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, position:"relative" }}>
+                        <span style={{ fontSize:11, fontWeight:800, color:col }}>{initials}</span>
+                        {isDriver && <div style={{ position:"absolute", bottom:-2, right:-2, width:12, height:12, borderRadius:99, background:"#FF9F0A", border:"2px solid #fff", display:"flex", alignItems:"center", justifyContent:"center" }}><span style={{ fontSize:7, color:"#fff" }}>🚗</span></div>}
+                      </div>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:13, fontWeight:700, color:"#1D1D1F" }}>{m.name}</div>
+                        {commune && <div style={{ fontSize:12, color:"#AEAEB2", marginTop:1 }}>{commune}</div>}
+                      </div>
+                      <div style={{ fontSize:22, fontWeight:800, color: count > 0 ? col : "#D1D1D6", minWidth:28, textAlign:"right" }}>{count}</div>
+                    </div>
+                  );
+                })}
+              </Card>
             );
           })}
-        </Card>
+        </div>
       )}
-      {todayC.length === 0
-        ? <Card><div style={{ textAlign:"center", padding:40, color:"#AEAEB2" }}>Aucun contrat aujourd'hui</div></Card>
-        : CList(todayC.slice().sort(function(a,b){ return (b.heure||"").localeCompare(a.heure||""); }))
-      }
     </div>
   );
 }
