@@ -2927,6 +2927,7 @@ const [showAll, setShowAll] = useState(false);
 const [qCom, setQCom] = useState(null); // selected commercial in quality detail
 const [qFrom, setQFrom] = useState("");
 const [qTo, setQTo] = useState("");
+const [selectedCom, setSelectedCom] = useState(null); // recap commercial
 
 // ── shared helpers ──────────────────────────────────────────────────────────
 var pendingVTA = contracts.filter(function(c) { return c.vtaCode && !c.vtaResolved; });
@@ -3503,6 +3504,251 @@ if (view === "quality") {
   );
 }
 
+// ── RECAP COMMERCIAL ─────────────────────────────────────────────────────────
+if (view === "commercial") {
+  function isBrC(c) { return c.status && (c.status === "Branché" || c.status === "Branché VRF"); }
+  function isRdC(c) { return c.status && (c.status === "RDV pris" || c.status === "RDV pris J+7"); }
+  function isAnC(c) { return c.status === "Annulé" || c.status === "Résilié"; }
+
+  var comNamesRC = Array.from(new Set(contracts.map(function(c){ return c.commercial; }))).sort();
+  var comStatsRC = comNamesRC.map(function(name) {
+    var cc = contracts.filter(function(c){ return c.commercial === name; });
+    var weekCC = cc.filter(function(c){ return c.date >= wkStartStr && c.date <= todayStr; });
+    var monthCC = cc.filter(function(c){ return c.date >= moStartStr && c.date <= todayStr; });
+    var tot = cc.length || 1;
+    var br = cc.filter(isBrC).length;
+    var rd = cc.filter(isRdC).length;
+    var at = cc.filter(function(c){ return c.status === "En attente RDV"; }).length;
+    var an = cc.filter(isAnC).length;
+    var activeDates = Array.from(new Set(cc.map(function(c){ return c.date; }))).sort(function(a,b){ return b.localeCompare(a); });
+    var villeCount = {};
+    cc.forEach(function(c){ if (c.ville) villeCount[c.ville] = (villeCount[c.ville]||0)+1; });
+    var topVilles = Object.entries(villeCount).sort(function(a,b){ return b[1]-a[1]; }).slice(0,3);
+    var boxCount = {};
+    cc.forEach(function(c){ if (c.box) boxCount[c.box] = (boxCount[c.box]||0)+1; });
+    var last6 = MONTHS_ORDER.slice(-6);
+    var monthlyData = last6.map(function(mk) {
+      var mIdx = _ML_KEYS.indexOf(mk.slice(0,-2));
+      var yr = parseInt("20" + mk.slice(-2));
+      var cnt = cc.filter(function(c) {
+        if (!c.date) return false;
+        var d = new Date(c.date + "T12:00:00");
+        return d.getFullYear() === yr && d.getMonth() === mIdx;
+      }).length;
+      return { mk: mk, label: _ML_FULL[mIdx], count: cnt };
+    });
+    return {
+      name: name, total: cc.length, weekTotal: weekCC.length, monthTotal: monthCC.length,
+      activeDays: activeDates.length, lastDate: activeDates[0] || null,
+      br: br, rd: rd, at: at, an: an,
+      tBr: br/tot*100, tRd: rd/tot*100, tAt: at/tot*100, tAn: an/tot*100,
+      tGlobal: (br+rd)/tot*100, topVilles: topVilles, boxCount: boxCount, monthlyData: monthlyData,
+    };
+  }).sort(function(a,b){ return b.total - a.total; });
+
+  // ── DETAIL ──
+  if (selectedCom) {
+    var csd = comStatsRC.find(function(s){ return s.name === selectedCom; });
+    if (!csd) { setSelectedCom(null); return null; }
+    var colD = comColor(csd.name);
+    var initialsD = csd.name.split(" ").map(function(w){ return w[0]; }).slice(0,2).join("").toUpperCase();
+    var qualColD = csd.tGlobal >= 60 ? "#34C759" : csd.tGlobal >= 35 ? "#FF9F0A" : "#FF3B30";
+    var maxMo = Math.max.apply(null, csd.monthlyData.map(function(m){ return m.count; })) || 1;
+    var tmMember = team.find(function(m){ return m.name === selectedCom; });
+    var lastDateLabel = csd.lastDate ? (function() {
+      var diff = Math.round((new Date() - new Date(csd.lastDate + "T12:00:00")) / 86400000);
+      if (diff === 0) return "Aujourd'hui";
+      if (diff === 1) return "Hier";
+      if (diff < 7) return "Il y a " + diff + "j";
+      if (diff < 14) return "Sem. dernière";
+      return "Il y a " + Math.round(diff/7) + " sem.";
+    })() : "—";
+    return (
+      <div>
+        <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:20 }}>
+          <Btn v="ghost" onClick={function(){ setSelectedCom(null); }}>← Retour</Btn>
+          <div style={{ width:42, height:42, borderRadius:99, background:colD+"20", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+            <span style={{ fontSize:13, fontWeight:800, color:colD }}>{initialsD}</span>
+          </div>
+          <div>
+            <h2 style={{ margin:0, fontSize:20, fontWeight:800 }}>{csd.name}</h2>
+            {tmMember && <div style={{ fontSize:12, color:"#AEAEB2" }}>{tmMember.role}</div>}
+          </div>
+          <div style={{ marginLeft:"auto", textAlign:"right" }}>
+            <div style={{ fontSize:28, fontWeight:800, color:qualColD, lineHeight:1 }}>{csd.tGlobal.toFixed(0)}%</div>
+            <div style={{ fontSize:10, color:"#AEAEB2", fontWeight:600 }}>qualité</div>
+          </div>
+        </div>
+
+        {/* Volume */}
+        <div style={{ fontSize:10, fontWeight:700, color:"#AEAEB2", textTransform:"uppercase", letterSpacing:0.8, marginBottom:10 }}>Volume</div>
+        <div style={{ display:"flex", gap:10, marginBottom:20, flexWrap:"wrap" }}>
+          {[
+            { label:"Total", val:csd.total, col:"#0071E3" },
+            { label:"Cette sem.", val:csd.weekTotal, col:"#34C759" },
+            { label:"Ce mois", val:csd.monthTotal, col:"#AF52DE" },
+            { label:"Jours actifs", val:csd.activeDays, col:"#FF9F0A" },
+          ].map(function(item) {
+            return (
+              <Card key={item.label} style={{ flex:1, minWidth:70, padding:"12px 10px", textAlign:"center" }}>
+                <div style={{ fontSize:9, fontWeight:600, color:"#AEAEB2", textTransform:"uppercase", letterSpacing:0.4, marginBottom:4 }}>{item.label}</div>
+                <div style={{ fontSize:26, fontWeight:800, color:item.col, lineHeight:1 }}>{item.val}</div>
+              </Card>
+            );
+          })}
+          <Card style={{ flex:1, minWidth:70, padding:"12px 10px", textAlign:"center" }}>
+            <div style={{ fontSize:9, fontWeight:600, color:"#AEAEB2", textTransform:"uppercase", letterSpacing:0.4, marginBottom:4 }}>Dernier</div>
+            <div style={{ fontSize:13, fontWeight:800, color:"#1D1D1F", lineHeight:1.3 }}>{lastDateLabel}</div>
+          </Card>
+        </div>
+
+        {/* Qualité */}
+        <div style={{ fontSize:10, fontWeight:700, color:"#AEAEB2", textTransform:"uppercase", letterSpacing:0.8, marginBottom:10 }}>Qualité</div>
+        <Card style={{ marginBottom:20, padding:20 }}>
+          {[
+            { label:"Taux branchement", sub:"long terme", val:csd.tBr, count:csd.br, col:"#34C759" },
+            { label:"Taux RDV", sub:"hebdomadaire", val:csd.tRd, count:csd.rd, col:"#1A7A3F" },
+            { label:"En attente RDV", sub:"pipeline", val:csd.tAt, count:csd.at, col:"#FF9F0A" },
+            { label:"Taux annulation", sub:"rétractations", val:csd.tAn, count:csd.an, col:"#FF3B30" },
+          ].map(function(item) {
+            return (
+              <div key={item.label} style={{ marginBottom:14 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:5 }}>
+                  <div>
+                    <span style={{ fontSize:13, fontWeight:600 }}>{item.label}</span>
+                    <span style={{ fontSize:10, color:"#AEAEB2", marginLeft:5 }}>{item.sub}</span>
+                  </div>
+                  <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                    <span style={{ fontSize:10, color:"#AEAEB2" }}>{item.count}</span>
+                    <span style={{ fontSize:16, fontWeight:800, color:item.col }}>{item.val.toFixed(1)}%</span>
+                  </div>
+                </div>
+                <div style={{ height:7, borderRadius:4, background:"#F5F5F7" }}>
+                  <div style={{ width:Math.min(item.val,100)+"%", height:"100%", borderRadius:4, background:item.col }} />
+                </div>
+              </div>
+            );
+          })}
+        </Card>
+
+        {/* Tendance 6 mois */}
+        <div style={{ fontSize:10, fontWeight:700, color:"#AEAEB2", textTransform:"uppercase", letterSpacing:0.8, marginBottom:10 }}>Tendance 6 mois</div>
+        <Card style={{ marginBottom:20, padding:20 }}>
+          <div style={{ display:"flex", alignItems:"flex-end", gap:6, height:110 }}>
+            {csd.monthlyData.map(function(m, i) {
+              var isCurr = i === csd.monthlyData.length - 1;
+              var barH = maxMo > 0 ? Math.max(4, Math.round(m.count / maxMo * 90)) : 4;
+              return (
+                <div key={m.mk} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
+                  <div style={{ fontSize:11, fontWeight:700, color: isCurr ? colD : "#6E6E73" }}>{m.count > 0 ? m.count : ""}</div>
+                  <div style={{ width:"100%", height:barH, borderRadius:4, background: isCurr ? colD : colD+"35" }} />
+                  <div style={{ fontSize:9, color: isCurr ? colD : "#AEAEB2", fontWeight: isCurr ? 700 : 400, textAlign:"center" }}>{m.label}</div>
+                </div>
+              );
+            })}
+          </div>
+          {csd.monthlyData.length >= 2 && (function() {
+            var curr = csd.monthlyData[csd.monthlyData.length-1].count;
+            var prev = csd.monthlyData[csd.monthlyData.length-2].count;
+            var diff = curr - prev;
+            return (
+              <div style={{ marginTop:12, paddingTop:12, borderTop:"1px solid #F5F5F7", display:"flex", alignItems:"center", gap:8 }}>
+                <span style={{ fontSize:12, color:"#AEAEB2" }}>vs mois précédent :</span>
+                <span style={{ fontSize:14, fontWeight:800, color: diff > 0 ? "#34C759" : diff < 0 ? "#FF3B30" : "#AEAEB2" }}>{diff > 0 ? "+" : ""}{diff}</span>
+                {prev > 0 && <span style={{ fontSize:11, color:"#AEAEB2" }}>({((diff/prev)*100).toFixed(0)}%)</span>}
+              </div>
+            );
+          })()}
+        </Card>
+
+        {/* Top communes */}
+        {csd.topVilles.length > 0 && <div>
+          <div style={{ fontSize:10, fontWeight:700, color:"#AEAEB2", textTransform:"uppercase", letterSpacing:0.8, marginBottom:10 }}>Top communes</div>
+          <Card style={{ marginBottom:20, padding:0, overflow:"hidden" }}>
+            {csd.topVilles.map(function(entry, i) {
+              var pct = entry[1] / csd.total * 100;
+              return (
+                <div key={entry[0]} style={{ padding:"12px 16px", borderTop: i > 0 ? "1px solid #F5F5F7" : "none", display:"flex", alignItems:"center", gap:12 }}>
+                  <div style={{ fontSize:12, fontWeight:700, color:"#AEAEB2", minWidth:16 }}>{i+1}</div>
+                  <div style={{ flex:1 }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
+                      <span style={{ fontSize:13, fontWeight:600 }}>{entry[0]}</span>
+                      <span style={{ fontSize:13, fontWeight:800, color:colD }}>{entry[1]}</span>
+                    </div>
+                    <div style={{ height:5, borderRadius:2.5, background:"#F5F5F7" }}>
+                      <div style={{ width:pct+"%", height:"100%", borderRadius:2.5, background:colD+"50" }} />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </Card>
+        </div>}
+
+        {/* Produits */}
+        {Object.keys(csd.boxCount).length > 0 && <div>
+          <div style={{ fontSize:10, fontWeight:700, color:"#AEAEB2", textTransform:"uppercase", letterSpacing:0.8, marginBottom:10 }}>Produits</div>
+          <div style={{ display:"flex", gap:10, marginBottom:20 }}>
+            {[
+              { key:"ULTRA", label:"Ultra", col:"#0071E3" },
+              { key:"ULTRA_LIGHT", label:"Ultra Light", col:"#5AC8FA" },
+              { key:"POP", label:"Pop", col:"#FF9F0A" },
+            ].filter(function(item){ return csd.boxCount[item.key] > 0; }).map(function(item) {
+              var pct = (csd.boxCount[item.key] / csd.total * 100).toFixed(0);
+              return (
+                <Card key={item.key} style={{ flex:1, padding:"14px 12px", textAlign:"center" }}>
+                  <div style={{ fontSize:9, fontWeight:600, color:"#AEAEB2", textTransform:"uppercase", letterSpacing:0.4, marginBottom:4 }}>{item.label}</div>
+                  <div style={{ fontSize:26, fontWeight:800, color:item.col, lineHeight:1, marginBottom:2 }}>{csd.boxCount[item.key]}</div>
+                  <div style={{ fontSize:11, color:"#AEAEB2" }}>{pct}%</div>
+                </Card>
+              );
+            })}
+          </div>
+        </div>}
+      </div>
+    );
+  }
+
+  // ── GRILLE ──
+  return (
+    <div>
+      <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:20 }}>
+        <Btn v="ghost" onClick={function(){ setView(null); }}>← Retour</Btn>
+        <h2 style={{ margin:0, fontSize:20, fontWeight:800 }}>Récap Commercial</h2>
+        <span style={{ fontSize:12, color:"#AEAEB2", marginLeft:4 }}>{comStatsRC.length} commerciaux</span>
+      </div>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(155px, 1fr))", gap:12 }}>
+        {comStatsRC.map(function(cs) {
+          var col = comColor(cs.name);
+          var initials = cs.name.split(" ").map(function(w){ return w[0]; }).slice(0,2).join("").toUpperCase();
+          var qualCol = cs.tGlobal >= 60 ? "#34C759" : cs.tGlobal >= 35 ? "#FF9F0A" : "#FF3B30";
+          var firstName = cs.name.split(" ")[0];
+          var lastName = cs.name.split(" ").slice(1).join(" ");
+          return (
+            <Card key={cs.name} onClick={function(){ setSelectedCom(cs.name); }} style={{ padding:16, cursor:"pointer", textAlign:"center" }}>
+              <div style={{ width:46, height:46, borderRadius:99, background:col+"20", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 10px" }}>
+                <span style={{ fontSize:14, fontWeight:800, color:col }}>{initials}</span>
+              </div>
+              <div style={{ fontSize:13, fontWeight:700, color:"#1D1D1F" }}>{firstName}</div>
+              <div style={{ fontSize:11, color:"#6E6E73", marginBottom:10 }}>{lastName}</div>
+              <div style={{ fontSize:26, fontWeight:800, color:col, lineHeight:1, marginBottom:2 }}>{cs.total}</div>
+              <div style={{ fontSize:10, color:"#AEAEB2", marginBottom:10 }}>contrats</div>
+              <div style={{ display:"flex", justifyContent:"space-between", fontSize:11, marginBottom:3 }}>
+                <span style={{ color:"#AEAEB2" }}>Ce mois</span>
+                <span style={{ fontWeight:700, color:col }}>{cs.monthTotal}</span>
+              </div>
+              <div style={{ display:"flex", justifyContent:"space-between", fontSize:11 }}>
+                <span style={{ color:"#AEAEB2" }}>Qualité</span>
+                <span style={{ fontWeight:700, color:qualCol }}>{cs.tGlobal.toFixed(0)}%</span>
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ── OVERVIEW ─────────────────────────────────────────────────────────────────
 var dates = Array.from(new Set(contracts.map(function(c) { return c.date; }))).sort(function(a, b) { return b.localeCompare(a); });
 var total = contracts.length;
@@ -3617,6 +3863,24 @@ return (
       <div style={{ display:"flex", gap:6 }}>
         {annulesOv > 0 && <span style={{ fontSize:11, fontWeight:700, color:"#FF3B30", background:"#FF3B3015", borderRadius:20, padding:"2px 8px" }}>{annulesOv} annulés</span>}
         {pendingVTA.length > 0 && <span style={{ fontSize:11, fontWeight:700, color:"#FF9F0A", background:"#FF9F0A15", borderRadius:20, padding:"2px 8px" }}>{pendingVTA.length} VTA?</span>}
+      </div>
+    </Card>
+
+    {/* Récap Commercial */}
+    <Card onClick={function(){ setView("commercial"); }} style={{ cursor:"pointer", padding:20, border:"2px solid transparent" }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:12 }}>
+        <div>
+          <div style={{ fontSize:11, fontWeight:600, color:"#AEAEB2", textTransform:"uppercase", letterSpacing:0.5, marginBottom:4 }}>Commerciaux</div>
+          <div style={{ fontSize:36, fontWeight:800, letterSpacing:-1.5, color:"#FF9F0A", lineHeight:1 }}>{Array.from(new Set(contracts.map(function(c){ return c.commercial; }))).length}</div>
+        </div>
+        <div style={{ fontSize:22 }}>👤</div>
+      </div>
+      <div style={{ fontSize:12, color:"#6E6E73", marginBottom:6 }}>Récap par commercial</div>
+      <div style={{ marginTop:4, display:"flex", gap:4, flexWrap:"wrap" }}>
+        {topComs(monthC).slice(0,2).map(function(e){
+          var col = comColor(e[0]);
+          return <span key={e[0]} style={{ fontSize:11, fontWeight:700, color:col, background:col+"15", borderRadius:20, padding:"2px 8px" }}>{e[0].split(" ")[0]} {e[1]}</span>;
+        })}
       </div>
     </Card>
   </div>
