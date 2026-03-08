@@ -253,7 +253,7 @@ const DEMO_TEAM = [
 { id: 26, name: "Ilhan Kocak", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true, vstCodes: ["vst-ikocak"], lentCodes: [] },
 { id: 27, name: "Ines Ouirini", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true, vstCodes: ["vst-iouirini"], lentCodes: [] },
 { id: 28, name: "Shana David", role: "Debutant", operators: ["Free"], permis: false, voiture: false, active: true, vstCodes: ["vst-sdavid"], lentCodes: [] },
-{ id: 29, name: "Adam El Jazouli", role: "Confirme", operators: ["Free"], permis: false, voiture: false, active: true, vstCodes: ["vst-ajazouli"], lentCodes: [] },
+{ id: 29, name: "Adam El Jazouli", role: "Confirme", operators: ["Free"], permis: false, voiture: false, active: true, vstCodes: [], lentCodes: [] },
 ];
 
 const DEMO_CARS = [
@@ -1917,10 +1917,13 @@ const [fl, setFl] = useState("");
 const [vue, setVue] = useState("liste");
 const [picker, setPicker] = useState(null);
 const [vstInputs, setVstInputs] = useState({});
+const [vstAddOpen, setVstAddOpen] = useState(null);
 const [fVstInput, setFVstInput] = useState("");
+const [fLentCode, setFLentCode] = useState("");
+const [fLentBorrower, setFLentBorrower] = useState("");
 
-function openAdd() { setEm(null); setF({ name: "", role: "Debutant", operators: ["Free"], permis: false, voiture: false, vstCodes: [], lentCodes: [] }); setFVstInput(""); setMo(true); }
-function openEdit(m) { setEm(m); setF({ name: m.name, role: m.role, operators: Array.isArray(m.operators) ? m.operators : [m.operator || "Free"], permis: m.permis, voiture: m.voiture, vstCodes: m.vstCodes ? m.vstCodes.slice() : [], lentCodes: m.lentCodes ? m.lentCodes.slice() : [] }); setFVstInput(""); setMo(true); }
+function openAdd() { setEm(null); setF({ name: "", role: "Debutant", operators: ["Free"], permis: false, voiture: false, vstCodes: [], lentCodes: [] }); setFVstInput(""); setFLentCode(""); setFLentBorrower(""); setMo(true); }
+function openEdit(m) { setEm(m); setF({ name: m.name, role: m.role, operators: Array.isArray(m.operators) ? m.operators : [m.operator || "Free"], permis: m.permis, voiture: m.voiture, vstCodes: m.vstCodes ? m.vstCodes.slice() : [], lentCodes: m.lentCodes ? m.lentCodes.slice() : [] }); setFVstInput(""); setFLentCode(""); setFLentBorrower(""); setMo(true); }
 function save() {
 if (!f.name.trim()) return;
 if (em) { saveTeam(team.map(function(m) { return m.id === em.id ? Object.assign({}, m, f) : m; })); }
@@ -1971,8 +1974,17 @@ function removeVstCodeFromMember(code, memberId) {
 
 var roleOrder = { "Manager": 0, "Assistant Manager": 1, "Formateur": 2, "Confirme": 3, "Debutant": 4 };
 
-// Weekly contracts per person
+// Reverse map: borrowerId → [{code, lenderName}]
+var borrowerMap = {};
+team.forEach(function(m) {
+  (m.lentCodes || []).forEach(function(lc) {
+    if (!borrowerMap[lc.borrowerId]) borrowerMap[lc.borrowerId] = [];
+    borrowerMap[lc.borrowerId].push({ code: lc.code, lenderName: m.name });
+  });
+});
+
 function MemberCard({ m, onClick }) {
+  var borrowed = borrowerMap[m.id] || [];
   return (
     <Card style={{ padding: 14, opacity: m.active ? 1 : 0.5, cursor: onClick ? "pointer" : "default" }} onClick={onClick}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -1985,6 +1997,7 @@ function MemberCard({ m, onClick }) {
             {m.permis && <Badge color="#34C759">Permis</Badge>}
             {m.voiture && <Badge color="#7C3AED">Voiture</Badge>}
             {!m.active && <Badge color="#FF3B30">Inactif</Badge>}
+            {borrowed.map(function(bc) { return <Badge key={bc.code} color="#FF9F0A">Code de {bc.lenderName.split(' ')[0]}</Badge>; })}
           </div>
         </div>
       </div>
@@ -2277,26 +2290,34 @@ return (
                     })}
                     {codes.length === 0 && <span style={{ fontSize: 12, color: "#AEAEB2", fontStyle: "italic" }}>Aucun code attribué</span>}
                   </div>
-                  <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <button onClick={function(e) { e.stopPropagation(); setVstAddOpen(vstAddOpen === m.id ? null : m.id); var v = {}; v[m.id] = ""; setVstInputs(Object.assign({}, vstInputs, v)); }}
+                    style={{ width: 28, height: 28, borderRadius: 8, border: "1px dashed #0071E360", background: vstAddOpen === m.id ? "#0071E310" : "transparent", cursor: "pointer", color: "#0071E3", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 300, flexShrink: 0 }}>
+                    {vstAddOpen === m.id ? "×" : "+"}
+                  </button>
+                  {vstAddOpen === m.id && <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                     <input
+                      autoFocus
                       value={inputVal}
                       onChange={function(e) { var v = {}; v[m.id] = e.target.value; setVstInputs(Object.assign({}, vstInputs, v)); }}
                       onKeyDown={function(e) {
+                        if (e.key === 'Escape') { setVstAddOpen(null); return; }
                         if (e.key === 'Enter' && inputVal.trim()) {
                           addVstCodeToMember(inputVal, m.id);
                           var v = {}; v[m.id] = ""; setVstInputs(Object.assign({}, vstInputs, v));
+                          setVstAddOpen(null);
                         }
                       }}
-                      placeholder="vst-xxx"
-                      style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid rgba(0,0,0,0.12)", fontSize: 12, width: 110, fontFamily: "monospace", outline: "none" }}
+                      placeholder="vst-xxx + Entrée"
+                      style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid #0071E340", fontSize: 12, width: 140, fontFamily: "monospace", outline: "none", background: "#F5F9FF" }}
                     />
                     <Btn s="sm" v="secondary" onClick={function() {
                       if (inputVal.trim()) {
                         addVstCodeToMember(inputVal, m.id);
                         var v = {}; v[m.id] = ""; setVstInputs(Object.assign({}, vstInputs, v));
+                        setVstAddOpen(null);
                       }
-                    }}>+</Btn>
-                  </div>
+                    }}>✓</Btn>
+                  </div>}
                 </div>
               </Card>
             );
@@ -2376,25 +2397,31 @@ return (
   </div>
   <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
     <Sel
-      value=""
+      value={fLentCode}
       placeholder="Code à prêter..."
       onChange={function(code) {
-        if (!code) return;
-        setF(Object.assign({}, f, { _pendingLentCode: code }));
+        setFLentCode(code);
+        if (code && fLentBorrower) {
+          var bid = parseInt(fLentBorrower);
+          if (!(f.lentCodes || []).find(function(x) { return x.code === code && x.borrowerId === bid; }))
+            setF(Object.assign({}, f, { lentCodes: (f.lentCodes || []).concat({ code: code, borrowerId: bid }) }));
+          setFLentCode(""); setFLentBorrower("");
+        }
       }}
       options={(f.vstCodes || []).map(function(c) { return { value: c, label: c }; })}
       style={{ flex: 1 }}
     />
     <span style={{ fontSize: 12, color: "#6E6E73" }}>→</span>
     <Sel
-      value=""
+      value={fLentBorrower}
       placeholder="Prêter à..."
-      onChange={function(borrowerId) {
-        if (!borrowerId || !f._pendingLentCode) return;
-        var bid = parseInt(borrowerId);
-        var existing = (f.lentCodes || []).find(function(x) { return x.code === f._pendingLentCode && x.borrowerId === bid; });
-        if (!existing) {
-          setF(Object.assign({}, f, { lentCodes: (f.lentCodes || []).concat({ code: f._pendingLentCode, borrowerId: bid }), _pendingLentCode: null }));
+      onChange={function(bid) {
+        setFLentBorrower(bid);
+        if (bid && fLentCode) {
+          var borrowerId = parseInt(bid);
+          if (!(f.lentCodes || []).find(function(x) { return x.code === fLentCode && x.borrowerId === borrowerId; }))
+            setF(Object.assign({}, f, { lentCodes: (f.lentCodes || []).concat({ code: fLentCode, borrowerId: borrowerId }) }));
+          setFLentCode(""); setFLentBorrower("");
         }
       }}
       options={team.filter(function(m) { return m.active && (!em || m.id !== em.id); }).sort(function(a,b) { return a.name.localeCompare(b.name); }).map(function(m) { return { value: String(m.id), label: m.name }; })}
