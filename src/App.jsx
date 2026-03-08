@@ -1540,7 +1540,22 @@ var oldKeys = ["agency-team-v1","agency-cars-v1","agency-contracts-v1","agency-d
 for (var k of oldKeys) { try { await store.delete(k); } catch(e) {} }
 
 // Charger ou initialiser avec données propres
-setTeam(await store.get(STORAGE_KEYS.team) || DEMO_TEAM);
+// Migration v3→v4 : récupérer l'équipe existante et lui ajouter vstCodes/lentCodes
+var teamData = await store.get(STORAGE_KEYS.team);
+if (!teamData) {
+  var migratedTeam = await store.get("agency-team-v3");
+  if (migratedTeam) {
+    teamData = migratedTeam.map(function(m) {
+      var demo = DEMO_TEAM.find(function(d) { return d.id === m.id || d.name === m.name; });
+      return Object.assign({}, m, {
+        vstCodes: m.vstCodes || (demo ? demo.vstCodes : []) || [],
+        lentCodes: m.lentCodes || [],
+      });
+    });
+    store.set(STORAGE_KEYS.team, teamData);
+  }
+}
+setTeam(teamData || DEMO_TEAM);
 setCars(await store.get(STORAGE_KEYS.cars) || DEMO_CARS);
 // Les contrats : partir toujours de DEMO_CONTRACTS + appliquer les résolutions VTA sauvegardées
 var savedResolutions = await store.get(STORAGE_KEYS.contracts) || {};
