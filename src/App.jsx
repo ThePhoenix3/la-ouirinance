@@ -2440,6 +2440,7 @@ const [fC, setFC] = useState("");
 const [fO, setFO] = useState("");
 const [fS, setFS] = useState("");
 const [showAll, setShowAll] = useState(false);
+const [qCom, setQCom] = useState(null); // selected commercial in quality detail
 
 // ── shared helpers ──────────────────────────────────────────────────────────
 var pendingVTA = contracts.filter(function(c) { return c.vtaCode && !c.vtaResolved; });
@@ -2790,75 +2791,180 @@ if (view === "month") {
 }
 
 if (view === "quality") {
-  var totalQ = contracts.length || 1;
-  var branchesQ = contracts.filter(function(c){ return c.status && c.status.indexOf("Branché")===0; }).length;
-  var rdvQ = contracts.filter(function(c){ return c.status && c.status.indexOf("RDV")>=0; }).length;
-  var attenteQ = contracts.filter(function(c){ return c.status === "En attente RDV"; }).length;
-  var annulesQ = contracts.filter(function(c){ return c.status === "Annulé"; }).length;
-  var resiliesQ = contracts.filter(function(c){ return c.status === "Résilié"; }).length;
-  var tauxBranche = (branchesQ / totalQ * 100).toFixed(1);
-  var tauxAnnule = ((annulesQ + resiliesQ) / totalQ * 100).toFixed(1);
-  var statusDist = {};
-  contracts.forEach(function(c){ var s = c.status||"Inconnu"; statusDist[s]=(statusDist[s]||0)+1; });
-  var statusEntries = Object.entries(statusDist).sort(function(a,b){ return b[1]-a[1]; });
-  var maxSD = statusEntries.length ? statusEntries[0][1] : 1;
-  var badContracts = contracts.filter(function(c){ return c.status==="Annulé"||c.status==="Résilié"; })
-    .sort(function(a,b){ return (b.date+(b.heure||"")).localeCompare(a.date+(a.heure||"")); });
+  function isBranche(c) { return c.status && c.status.indexOf("Branché") === 0; }
+  function isRdv(c) { return c.status && (c.status === "RDV Pris" || c.status === "RDV Pris J+7"); }
+  function isAnnule(c) { return c.status === "Annulé" || c.status === "Résilié"; }
 
+  var totalQ = contracts.length || 1;
+  var branchesQ = contracts.filter(isBranche).length;
+  var rdvQ = contracts.filter(isRdv).length;
+  var annulesQ = contracts.filter(isAnnule).length;
+  var tauxGlobalQ = ((branchesQ + rdvQ) / totalQ * 100).toFixed(1);
+  var tauxBrancheQ = (branchesQ / totalQ * 100).toFixed(1);
+  var tauxRdvQ = (rdvQ / totalQ * 100).toFixed(1);
+  var tauxAnnuleQ = (annulesQ / totalQ * 100).toFixed(1);
+
+  var comNamesQ = Array.from(new Set(contracts.map(function(c){ return c.commercial; }))).sort();
+  var comStatsQ = comNamesQ.map(function(name) {
+    var cc = contracts.filter(function(c){ return c.commercial === name; });
+    var tot = cc.length || 1;
+    var br = cc.filter(isBranche).length;
+    var rd = cc.filter(isRdv).length;
+    var an = cc.filter(isAnnule).length;
+    return { name: name, total: cc.length, br: br, rd: rd, an: an,
+      tGlobal: (br + rd) / tot * 100, tBr: br / tot * 100, tRd: rd / tot * 100, tAn: an / tot * 100,
+      contracts: cc };
+  }).sort(function(a,b){ return b.tGlobal - a.tGlobal; });
+
+  // ── Detail: one commercial ──────────────────────────────────────────────────
+  if (qCom) {
+    var cs = comStatsQ.find(function(s){ return s.name === qCom; });
+    if (cs) {
+      var qualColor = cs.tGlobal >= 60 ? "#34C759" : cs.tGlobal >= 35 ? "#FF9F0A" : "#FF3B30";
+      return (
+        <div>
+          <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:20 }}>
+            <Btn v="ghost" onClick={function(){ setQCom(null); }}>← Retour</Btn>
+            <div style={{ width:36, height:36, borderRadius:99, background:comColor(cs.name)+"20", display:"flex", alignItems:"center", justifyContent:"center" }}>
+              <span style={{ fontSize:12, fontWeight:800, color:comColor(cs.name) }}>{cs.name.split(" ").map(function(w){ return w[0]; }).slice(0,2).join("").toUpperCase()}</span>
+            </div>
+            <h2 style={{ margin:0, fontSize:20, fontWeight:800 }}>{cs.name}</h2>
+            <div style={{ marginLeft:"auto", fontSize:28, fontWeight:800, color:qualColor }}>{cs.tGlobal.toFixed(0)}%</div>
+          </div>
+          <div style={{ display:"flex", gap:10, marginBottom:16, flexWrap:"wrap" }}>
+            <Card style={{ flex:1, minWidth:90, padding:14, textAlign:"center" }}>
+              <div style={{ fontSize:10, fontWeight:600, color:"#AEAEB2", textTransform:"uppercase", letterSpacing:0.5, marginBottom:4 }}>Total</div>
+              <div style={{ fontSize:28, fontWeight:800, color:"#1D1D1F" }}>{cs.total}</div>
+            </Card>
+            <Card style={{ flex:1, minWidth:90, padding:14, textAlign:"center" }}>
+              <div style={{ fontSize:10, fontWeight:600, color:"#AEAEB2", textTransform:"uppercase", letterSpacing:0.5, marginBottom:4 }}>Branchés</div>
+              <div style={{ fontSize:28, fontWeight:800, color:"#34C759" }}>{cs.br}</div>
+            </Card>
+            <Card style={{ flex:1, minWidth:90, padding:14, textAlign:"center" }}>
+              <div style={{ fontSize:10, fontWeight:600, color:"#AEAEB2", textTransform:"uppercase", letterSpacing:0.5, marginBottom:4 }}>RDV Pris</div>
+              <div style={{ fontSize:28, fontWeight:800, color:"#0071E3" }}>{cs.rd}</div>
+            </Card>
+            <Card style={{ flex:1, minWidth:90, padding:14, textAlign:"center" }}>
+              <div style={{ fontSize:10, fontWeight:600, color:"#AEAEB2", textTransform:"uppercase", letterSpacing:0.5, marginBottom:4 }}>Annulés</div>
+              <div style={{ fontSize:28, fontWeight:800, color:"#FF3B30" }}>{cs.an}</div>
+            </Card>
+          </div>
+          <Card style={{ marginBottom:16, padding:20 }}>
+            {[
+              { label:"Taux branchement", sub:"qualité long terme", val:cs.tBr, col:"#34C759" },
+              { label:"Taux RDV", sub:"qualité hebdomadaire", val:cs.tRd, col:"#0071E3" },
+              { label:"Taux annulation", sub:"rétractations", val:cs.tAn, col:"#FF3B30" },
+            ].map(function(item) {
+              return (
+                <div key={item.label} style={{ marginBottom:16 }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:6 }}>
+                    <div>
+                      <span style={{ fontSize:13, fontWeight:700 }}>{item.label}</span>
+                      <span style={{ fontSize:11, color:"#AEAEB2", marginLeft:6 }}>{item.sub}</span>
+                    </div>
+                    <span style={{ fontSize:16, fontWeight:800, color:item.col }}>{item.val.toFixed(1)}%</span>
+                  </div>
+                  <div style={{ height:8, borderRadius:4, background:"#F5F5F7" }}>
+                    <div style={{ width:Math.min(item.val,100)+"%", height:"100%", borderRadius:4, background:item.col }} />
+                  </div>
+                </div>
+              );
+            })}
+          </Card>
+          {CList(cs.contracts.slice().sort(function(a,b){ return (b.date+(b.heure||"")).localeCompare(a.date+(a.heure||"")); }))}
+        </div>
+      );
+    }
+  }
+
+  // ── Overview ────────────────────────────────────────────────────────────────
+  var globalQualCol = parseFloat(tauxGlobalQ) >= 60 ? "#34C759" : parseFloat(tauxGlobalQ) >= 35 ? "#FF9F0A" : "#FF3B30";
+  var annuleCol = parseFloat(tauxAnnuleQ) > 15 ? "#FF3B30" : parseFloat(tauxAnnuleQ) > 8 ? "#FF9F0A" : "#34C759";
   return (
     <div>
       <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:20 }}>
         <Btn v="ghost" onClick={function(){ setView(null); }}>← Retour</Btn>
         <h2 style={{ margin:0, fontSize:20, fontWeight:800 }}>Qualité</h2>
       </div>
-      <div style={{ display:"flex", gap:12, marginBottom:20, flexWrap:"wrap" }}>
-        <Card style={{ flex:1, minWidth:110, padding:"16px", textAlign:"center" }}>
-          <div style={{ fontSize:11, fontWeight:600, color:"#AEAEB2", textTransform:"uppercase", letterSpacing:0.5, marginBottom:6 }}>Taux branchement</div>
-          <div style={{ fontSize:32, fontWeight:800, letterSpacing:-1, color:"#34C759" }}>{tauxBranche}%</div>
+
+      {/* Global metrics */}
+      <div style={{ display:"flex", gap:12, marginBottom:24, flexWrap:"wrap" }}>
+        <Card style={{ flex:2, minWidth:220, padding:20 }}>
+          <div style={{ fontSize:11, fontWeight:600, color:"#AEAEB2", textTransform:"uppercase", letterSpacing:0.5, marginBottom:8 }}>Qualité globale agence</div>
+          <div style={{ fontSize:48, fontWeight:800, letterSpacing:-2, color:globalQualCol, lineHeight:1, marginBottom:14 }}>{tauxGlobalQ}%</div>
+          <div style={{ display:"flex", gap:20 }}>
+            <div>
+              <div style={{ fontSize:10, color:"#AEAEB2", fontWeight:600, textTransform:"uppercase", letterSpacing:0.3, marginBottom:2 }}>Branchement</div>
+              <div style={{ fontSize:18, fontWeight:800, color:"#34C759" }}>{tauxBrancheQ}%</div>
+              <div style={{ fontSize:11, color:"#AEAEB2" }}>{branchesQ} contrats</div>
+            </div>
+            <div style={{ width:1, background:"#F0F0F0" }} />
+            <div>
+              <div style={{ fontSize:10, color:"#AEAEB2", fontWeight:600, textTransform:"uppercase", letterSpacing:0.3, marginBottom:2 }}>RDV pris</div>
+              <div style={{ fontSize:18, fontWeight:800, color:"#0071E3" }}>{tauxRdvQ}%</div>
+              <div style={{ fontSize:11, color:"#AEAEB2" }}>{rdvQ} contrats</div>
+            </div>
+          </div>
         </Card>
-        <Card style={{ flex:1, minWidth:110, padding:"16px", textAlign:"center" }}>
-          <div style={{ fontSize:11, fontWeight:600, color:"#AEAEB2", textTransform:"uppercase", letterSpacing:0.5, marginBottom:6 }}>Taux annulation</div>
-          <div style={{ fontSize:32, fontWeight:800, letterSpacing:-1, color:parseFloat(tauxAnnule)>10?"#FF3B30":"#FF9F0A" }}>{tauxAnnule}%</div>
+        <Card style={{ flex:1, minWidth:120, padding:20, textAlign:"center", display:"flex", flexDirection:"column", justifyContent:"center" }}>
+          <div style={{ fontSize:11, fontWeight:600, color:"#AEAEB2", textTransform:"uppercase", letterSpacing:0.5, marginBottom:8 }}>Taux annulation</div>
+          <div style={{ fontSize:42, fontWeight:800, letterSpacing:-2, color:annuleCol, lineHeight:1 }}>{tauxAnnuleQ}%</div>
+          <div style={{ fontSize:12, color:"#AEAEB2", marginTop:8 }}>{annulesQ} contrat{annulesQ > 1 ? "s" : ""}</div>
         </Card>
         {pendingVTA.length > 0 && (
-          <Card style={{ flex:1, minWidth:110, padding:"16px", textAlign:"center", cursor:"pointer", border:"2px solid #FF9F0A30" }} onClick={resolveAllVTA}>
+          <Card style={{ flex:1, minWidth:110, padding:16, textAlign:"center", cursor:"pointer", border:"2px solid #FF9F0A30" }} onClick={resolveAllVTA}>
             <div style={{ fontSize:11, fontWeight:600, color:"#FF9F0A", textTransform:"uppercase", letterSpacing:0.5, marginBottom:6 }}>VTA à résoudre</div>
             <div style={{ fontSize:32, fontWeight:800, letterSpacing:-1, color:"#FF9F0A" }}>{pendingVTA.length}</div>
             <div style={{ fontSize:11, color:"#FF9F0A", marginTop:4 }}>Appuyer pour résoudre</div>
           </Card>
         )}
       </div>
-      {/* Status distribution */}
-      <Card style={{ marginBottom:16, padding:20 }}>
-        <h3 style={{ margin:"0 0 16px", fontSize:14, fontWeight:700 }}>Répartition des statuts</h3>
-        {statusEntries.map(function(entry) {
-          var col = statusColor(entry[0]);
-          var pct = entry[1] / maxSD * 100;
-          var share = (entry[1] / totalQ * 100).toFixed(0);
+
+      {/* Per-commercial quality */}
+      <div style={{ fontSize:13, fontWeight:700, color:"#1D1D1F", marginBottom:12 }}>Qualité par commercial</div>
+      <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+        {comStatsQ.map(function(cs) {
+          var col = comColor(cs.name);
+          var initials = cs.name.split(" ").map(function(w){ return w[0]; }).slice(0,2).join("").toUpperCase();
+          var qCol = cs.tGlobal >= 60 ? "#34C759" : cs.tGlobal >= 35 ? "#FF9F0A" : "#FF3B30";
           return (
-            <div key={entry[0]} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
-              <div style={{ minWidth:140, fontSize:12, fontWeight:600, color:"#1D1D1F" }}>{entry[0]}</div>
-              <div style={{ flex:1, height:8, borderRadius:4, background:"#F5F5F7" }}>
-                <div style={{ width:pct+"%", height:"100%", borderRadius:4, background:col }} />
+            <Card key={cs.name} onClick={function(){ setQCom(cs.name); }} style={{ padding:"14px 16px", cursor:"pointer" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:12 }}>
+                <div style={{ width:36, height:36, borderRadius:99, background:col+"20", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                  <span style={{ fontSize:11, fontWeight:800, color:col }}>{initials}</span>
+                </div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:14, fontWeight:700, color:"#1D1D1F" }}>{cs.name}</div>
+                  <div style={{ fontSize:11, color:"#AEAEB2" }}>{cs.total} contrat{cs.total > 1 ? "s" : ""}</div>
+                </div>
+                <div style={{ textAlign:"right" }}>
+                  <div style={{ fontSize:22, fontWeight:800, color:qCol, lineHeight:1 }}>{cs.tGlobal.toFixed(0)}%</div>
+                  <div style={{ fontSize:10, color:"#AEAEB2", fontWeight:600, marginTop:2 }}>qualité</div>
+                </div>
               </div>
-              <div style={{ minWidth:48, textAlign:"right" }}>
-                <span style={{ fontSize:13, fontWeight:800, color:col }}>{entry[1]}</span>
-                <span style={{ fontSize:10, color:"#AEAEB2", marginLeft:4 }}>{share}%</span>
+              <div style={{ display:"flex", gap:10 }}>
+                {[
+                  { label:"Branché", val:cs.tBr, count:cs.br, col:"#34C759" },
+                  { label:"RDV", val:cs.tRd, count:cs.rd, col:"#0071E3" },
+                  { label:"Annulé", val:cs.tAn, count:cs.an, col:"#FF3B30" },
+                ].map(function(item) {
+                  return (
+                    <div key={item.label} style={{ flex:1 }}>
+                      <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
+                        <span style={{ fontSize:10, color:"#AEAEB2", fontWeight:600 }}>{item.label}</span>
+                        <span style={{ fontSize:10, fontWeight:700, color:item.col }}>{item.count} · {item.val.toFixed(0)}%</span>
+                      </div>
+                      <div style={{ height:4, borderRadius:2, background:"#F5F5F7" }}>
+                        <div style={{ width:Math.min(item.val,100)+"%", height:"100%", borderRadius:2, background:item.col }} />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            </div>
+            </Card>
           );
         })}
-      </Card>
-      {/* Annulés / Résiliés list */}
-      {badContracts.length > 0 && (
-        <div style={{ marginBottom:16 }}>
-          <div style={{ display:"flex", justifyContent:"space-between", marginBottom:8, paddingLeft:4 }}>
-            <span style={{ fontSize:13, fontWeight:700, color:"#FF3B30" }}>Annulés & Résiliés</span>
-            <span style={{ fontSize:12, color:"#AEAEB2" }}>{badContracts.length}</span>
-          </div>
-          {CList(badContracts)}
-        </div>
-      )}
+      </div>
     </div>
   );
 }
