@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import carnetData from "./data.json";
 
-const STORAGE_KEYS = { team: "agency-team-v3", cars: "agency-cars-v4", contracts: "agency-contracts-v3", dailyPlan: "agency-daily-plan-v4", objectives: "agency-objectives-v3", groups: "agency-groups-v1" };
+const STORAGE_KEYS = { team: "agency-team-v4", cars: "agency-cars-v4", contracts: "agency-contracts-v3", dailyPlan: "agency-daily-plan-v4", objectives: "agency-objectives-v3", groups: "agency-groups-v1" };
 
 // Table VTA : code -> personnes assignees (principal en premier)
 const VTA_GROUPS = {
