@@ -2878,7 +2878,7 @@ if (view === "quality") {
           {[
             { label:"Total", val:cs.total, col:"#1D1D1F" },
             { label:"Branchés", val:cs.br, col:"#34C759" },
-            { label:"RDV Pris", val:cs.rd, col:"#0071E3" },
+            { label:"RDV Pris", val:cs.rd, col:"#1A7A3F" },
             { label:"En attente", val:cs.at, col:"#FF9F0A" },
             { label:"Annulés", val:cs.an, col:"#FF3B30" },
           ].map(function(item) {
@@ -2893,7 +2893,7 @@ if (view === "quality") {
         <Card style={{ marginBottom:16, padding:20 }}>
           {[
             { label:"Taux branchement", sub:"qualité long terme", val:cs.tBr, col:"#34C759" },
-            { label:"Taux RDV", sub:"qualité hebdomadaire", val:cs.tRd, col:"#0071E3" },
+            { label:"Taux RDV", sub:"qualité hebdomadaire", val:cs.tRd, col:"#1A7A3F" },
             { label:"En attente RDV", sub:"pipeline en cours", val:cs.tAt, col:"#FF9F0A" },
             { label:"Taux annulation", sub:"rétractations", val:cs.tAn, col:"#FF3B30" },
           ].map(function(item) {
@@ -2944,7 +2944,7 @@ if (view === "quality") {
             <div style={{ width:1, background:"#F0F0F0" }} />
             <div>
               <div style={{ fontSize:10, color:"#AEAEB2", fontWeight:600, textTransform:"uppercase", letterSpacing:0.3, marginBottom:2 }}>RDV pris</div>
-              <div style={{ fontSize:18, fontWeight:800, color:"#0071E3" }}>{tauxRdvQ}%</div>
+              <div style={{ fontSize:18, fontWeight:800, color:"#1A7A3F" }}>{tauxRdvQ}%</div>
               <div style={{ fontSize:11, color:"#AEAEB2" }}>{rdvQ} contrats</div>
             </div>
             <div style={{ width:1, background:"#F0F0F0" }} />
@@ -2994,7 +2994,7 @@ if (view === "quality") {
               <div style={{ display:"flex", gap:10 }}>
                 {[
                   { label:"Branché", val:cs.tBr, count:cs.br, col:"#34C759" },
-                  { label:"RDV", val:cs.tRd, count:cs.rd, col:"#0071E3" },
+                  { label:"RDV", val:cs.tRd, count:cs.rd, col:"#1A7A3F" },
                   { label:"Attente", val:cs.tAt, count:cs.at, col:"#FF9F0A" },
                   { label:"Annulé", val:cs.tAn, count:cs.an, col:"#FF3B30" },
                 ].map(function(item) {
