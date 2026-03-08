@@ -2437,103 +2437,187 @@ function ContractsTab({ contracts, team, dailyPlan, saveContracts }) {
 const [fD, setFD] = useState("");
 const [fC, setFC] = useState("");
 const [fO, setFO] = useState("");
+const [fS, setFS] = useState("");
+const [showAll, setShowAll] = useState(false);
 
-// Résoudre les VTA non encore attribués
 var pendingVTA = contracts.filter(function(c) { return c.vtaCode && !c.vtaResolved; });
+
 function resolveAllVTA() {
-  // Pour chaque contrat VTA non résolu, chercher si quelqu'un du groupe
-  // était dans le planning ce jour-là. Sinon, garder le principal du groupe.
   var updated = contracts.map(function(c) {
     if (!c.vtaCode || c.vtaResolved) return c;
     var group = VTA_GROUPS[c.vtaCode];
     if (!group) return Object.assign({}, c, { vtaResolved: true });
-
-    var resolved = c.commercial; // valeur actuelle (principal par défaut)
-
+    var resolved = c.commercial;
     if (dailyPlan) {
-      // Récupérer les IDs présents dans le planning (tous jours confondus,
-      // car on n'a pas de planning par date pour l'instant)
       var presentIds = [];
-      Object.values(dailyPlan).forEach(function(entry) {
-        if (entry && entry.members) presentIds = presentIds.concat(entry.members);
-      });
-      var presentNames = presentIds.map(function(id) {
-        var m = team.find(function(t) { return t.id === id; });
-        return m ? m.name : null;
-      }).filter(Boolean);
-
+      Object.values(dailyPlan).forEach(function(entry) { if (entry && entry.members) presentIds = presentIds.concat(entry.members); });
+      var presentNames = presentIds.map(function(id) { var m = team.find(function(t) { return t.id === id; }); return m ? m.name : null; }).filter(Boolean);
       var inGroup = group.filter(function(name) { return presentNames.indexOf(name) >= 0; });
       if (inGroup.length === 1) resolved = inGroup[0];
-      // Si 0 ou >1 : on garde le principal (c.commercial déjà correct)
     }
-
     return Object.assign({}, c, { commercial: resolved, vtaResolved: true });
   });
   saveContracts(updated);
 }
 
-var filtered = contracts.filter(function(c) {
-if (fD && c.date !== fD) return false;
-if (fC && c.commercial !== fC) return false;
-if (fO && c.operator !== fO) return false;
-return true;
-}).sort(function(a, b) { return (b.date + b.heure).localeCompare(a.date + a.heure); });
-
-var coms = Array.from(new Set(contracts.map(function(c) { return c.commercial; }))).sort();
 var dates = Array.from(new Set(contracts.map(function(c) { return c.date; }))).sort(function(a, b) { return b.localeCompare(a); });
+var coms = Array.from(new Set(contracts.map(function(c) { return c.commercial; }))).sort();
+
+// KPIs
+var total = contracts.length;
+var enAttente = contracts.filter(function(c) { return c.status === "En attente RDV"; }).length;
+var branches = contracts.filter(function(c) { return c.status && c.status.indexOf("Branché") === 0; }).length;
+var annules = contracts.filter(function(c) { return c.status === "Annulé" || c.status === "Résilié"; }).length;
+
+// Commercial avatar colors
+var COM_PALETTE = ["#0071E3","#34C759","#FF9F0A","#AF52DE","#FF3B30","#5AC8FA","#FF2D55","#5856D6","#32ADE6","#FF6961"];
+var comColorCache = {};
+var comColorI = 0;
+function comColor(name) {
+  if (!comColorCache[name]) comColorCache[name] = COM_PALETTE[comColorI++ % COM_PALETTE.length];
+  return comColorCache[name];
+}
+// Pre-assign colors in alphabetical order for consistency
+coms.forEach(function(name) { comColor(name); });
+
+var filtered = contracts.filter(function(c) {
+  if (fD && c.date !== fD) return false;
+  if (fC && c.commercial !== fC) return false;
+  if (fO && c.operator !== fO) return false;
+  if (fS && c.status !== fS) return false;
+  return true;
+}).sort(function(a, b) { return (b.date + (b.heure||"")).localeCompare(a.date + (a.heure||"")); });
+
+// Group by date when no date filter
+var grouped = [];
+if (!fD) {
+  var dateGroups = {};
+  filtered.forEach(function(c) {
+    if (!dateGroups[c.date]) dateGroups[c.date] = [];
+    dateGroups[c.date].push(c);
+  });
+  Object.keys(dateGroups).sort(function(a,b){return b.localeCompare(a);}).forEach(function(d) {
+    grouped.push({ date: d, items: dateGroups[d] });
+  });
+} else {
+  grouped = [{ date: fD, items: filtered }];
+}
+
+var statuses = Array.from(new Set(contracts.map(function(c) { return c.status; }).filter(Boolean))).sort();
+var hasFilter = fD || fC || fO || fS;
 
 return (
-
 <div>
-<Card style={{ marginBottom: 16, padding: "14px 16px" }}>
-<div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-<Inp type="date" value={fD} onChange={setFD} style={{ width: 160 }} />
-<Sel value={fC} onChange={setFC} placeholder="Tous commerciaux" options={coms} style={{ minWidth: 160 }} />
-<Sel value={fO} onChange={setFO} placeholder="Operateurs" options={OPERATORS} style={{ minWidth: 120 }} />
-{(fD || fC || fO) && <Btn s="sm" v="ghost" onClick={function() { setFD(""); setFC(""); setFO(""); }}>Reset</Btn>}
-{pendingVTA.length > 0 && <Btn s="sm" v="secondary" onClick={resolveAllVTA}>Resoudre VTA ({pendingVTA.length})</Btn>}
-<div style={{ marginLeft: "auto", fontSize: 13, color: "#6E6E73", fontWeight: 600 }}>{filtered.length} contrats</div>
-</div>
-</Card>
-{!fD && (
-<div style={{ display: "flex", gap: 10, marginBottom: 20, overflowX: "auto", paddingBottom: 4 }}>
-{dates.slice(0, 7).map(function(d) {
-var dc = contracts.filter(function(c) { return c.date === d; });
-return (
-<Card key={d} onClick={function() { setFD(d); }} style={{ minWidth: 100, padding: 14, textAlign: "center", cursor: "pointer", border: fD === d ? "2px solid #0071E3" : "2px solid transparent" }}>
-<div style={{ fontSize: 11, color: "#AEAEB2", fontWeight: 500 }}>{new Date(d + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "short", day: "numeric" })}</div>
-<div style={{ fontSize: 22, fontWeight: 700, marginTop: 2, letterSpacing: -0.5, color: "#1D1D1F" }}>{dc.length}</div>
-</Card>
-);
-})}
-</div>
-)}
-<Card style={{ padding: 0, overflow: "hidden" }}>
-<div style={{ overflowX: "auto" }}>
-<table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-<thead><tr style={{ background: "#FAFAFA" }}>
-{["Date", "Heure", "Commercial", "Ville", "Opérateur", "Statut"].map(function(h) {
-return <th key={h} style={{ padding: "11px 14px", textAlign: "left", fontWeight: 500, color: "#AEAEB2", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4 }}>{h}</th>;
-})}
-</tr></thead>
-<tbody>
-{filtered.slice(0, 80).map(function(c, i) {
-return (
-<tr key={c.id} style={{ borderTop: "1px solid rgba(0,0,0,0.04)", background: "#fff" }}>
-<td style={{ padding: "10px 14px" }}>{new Date(c.date + "T12:00:00").toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}</td>
-<td style={{ padding: "10px 14px", color: "#6E6E73", fontSize: 12, lineHeight: 1.5 }}>{c.heure}</td>
-<td style={{ padding: "10px 14px", fontWeight: 500, color: "#1D1D1F" }}>{c.commercial}</td>
-<td style={{ padding: "10px 14px" }}>{c.ville}</td>
-<td style={{ padding: "10px 14px" }}><Badge color={OP_COLORS[c.operator]}>{c.operator}</Badge></td>
-<td style={{ padding: "10px 14px" }}><Badge color={statusColor(c.status)}>{c.status}</Badge></td>
-</tr>
-);
-})}
-</tbody>
-</table>
-</div>
-{filtered.length === 0 && <div style={{ textAlign: "center", padding: 40, color: "#AEAEB2" }}>Aucun contrat</div>}
-</Card>
+  {/* KPIs */}
+  <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
+    <Card style={{ flex: 1, minWidth: 100, padding: "14px 16px", textAlign: "center" }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: "#AEAEB2", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 6 }}>Total</div>
+      <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: -1, color: "#1D1D1F" }}>{total}</div>
+    </Card>
+    <Card style={{ flex: 1, minWidth: 100, padding: "14px 16px", textAlign: "center" }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: "#AEAEB2", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 6 }}>En attente</div>
+      <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: -1, color: "#FF9F0A" }}>{enAttente}</div>
+    </Card>
+    <Card style={{ flex: 1, minWidth: 100, padding: "14px 16px", textAlign: "center" }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: "#AEAEB2", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 6 }}>Branchés</div>
+      <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: -1, color: "#34C759" }}>{branches}</div>
+    </Card>
+    {annules > 0 && <Card style={{ flex: 1, minWidth: 100, padding: "14px 16px", textAlign: "center" }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: "#AEAEB2", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 6 }}>Annulés</div>
+      <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: -1, color: "#FF3B30" }}>{annules}</div>
+    </Card>}
+    {pendingVTA.length > 0 && <Card style={{ flex: 1, minWidth: 100, padding: "14px 16px", textAlign: "center", cursor: "pointer", border: "2px solid #FF9F0A30" }} onClick={resolveAllVTA}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: "#FF9F0A", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 6 }}>VTA à résoudre</div>
+      <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: -1, color: "#FF9F0A" }}>{pendingVTA.length}</div>
+    </Card>}
+  </div>
+
+  {/* Date carousel */}
+  <div style={{ display: "flex", gap: 8, marginBottom: 16, overflowX: "auto", paddingBottom: 4 }}>
+    <Card onClick={function() { setFD(""); }} style={{ minWidth: 72, padding: "10px 12px", textAlign: "center", cursor: "pointer", flexShrink: 0, border: !fD ? "2px solid #0071E3" : "2px solid transparent", background: !fD ? "#0071E308" : "#fff" }}>
+      <div style={{ fontSize: 10, color: !fD ? "#0071E3" : "#AEAEB2", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.3 }}>Tous</div>
+      <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: -0.5, color: !fD ? "#0071E3" : "#1D1D1F", marginTop: 2 }}>{total}</div>
+    </Card>
+    {dates.slice(0, 10).map(function(d) {
+      var dc = contracts.filter(function(c) { return c.date === d; });
+      var isToday = d === new Date().toISOString().split("T")[0];
+      var sel = fD === d;
+      return (
+        <Card key={d} onClick={function() { setFD(d); }} style={{ minWidth: 72, padding: "10px 12px", textAlign: "center", cursor: "pointer", flexShrink: 0, border: sel ? "2px solid #0071E3" : "2px solid transparent", background: sel ? "#0071E308" : "#fff" }}>
+          <div style={{ fontSize: 10, color: sel ? "#0071E3" : "#AEAEB2", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.3 }}>
+            {isToday ? "Auj." : new Date(d + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "short" })}
+          </div>
+          <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: -0.5, color: sel ? "#0071E3" : "#1D1D1F", marginTop: 2 }}>{dc.length}</div>
+          <div style={{ fontSize: 10, color: "#AEAEB2", marginTop: 1 }}>{new Date(d + "T12:00:00").toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}</div>
+        </Card>
+      );
+    })}
+  </div>
+
+  {/* Filters */}
+  <Card style={{ marginBottom: 16, padding: "12px 16px" }}>
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+      <Sel value={fC} onChange={setFC} placeholder="Tous les commerciaux" options={coms.map(function(n) { return { value: n, label: n }; })} style={{ minWidth: 180 }} />
+      <Sel value={fO} onChange={setFO} placeholder="Opérateur" options={OPERATORS.map(function(o) { return { value: o, label: o }; })} style={{ minWidth: 110 }} />
+      <Sel value={fS} onChange={setFS} placeholder="Statut" options={statuses.map(function(s) { return { value: s, label: s }; })} style={{ minWidth: 160 }} />
+      {hasFilter && <Btn s="sm" v="ghost" onClick={function() { setFD(""); setFC(""); setFO(""); setFS(""); }}>Réinitialiser</Btn>}
+      <span style={{ marginLeft: "auto", fontSize: 13, fontWeight: 600, color: "#6E6E73" }}>{filtered.length} contrat{filtered.length > 1 ? "s" : ""}</span>
+    </div>
+  </Card>
+
+  {/* Contract list grouped by date */}
+  {filtered.length === 0
+    ? <Card><div style={{ textAlign: "center", padding: 40, color: "#AEAEB2", fontSize: 14 }}>Aucun contrat</div></Card>
+    : grouped.map(function(group) {
+        var dateLabel = new Date(group.date + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+        var displayItems = showAll || fD ? group.items : group.items.slice(0, 30);
+        return (
+          <div key={group.date} style={{ marginBottom: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, paddingLeft: 4 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "#1D1D1F", textTransform: "capitalize" }}>{dateLabel}</span>
+              <span style={{ fontSize: 12, color: "#AEAEB2", fontWeight: 500 }}>{group.items.length} contrat{group.items.length > 1 ? "s" : ""}</span>
+            </div>
+            <Card style={{ padding: 0, overflow: "hidden" }}>
+              {displayItems.map(function(c, i) {
+                var col = comColor(c.commercial);
+                var initials = c.commercial.split(" ").map(function(w){ return w[0]; }).slice(0,2).join("").toUpperCase();
+                var sCol = statusColor(c.status);
+                var isVtaPending = c.vtaCode && !c.vtaResolved;
+                return (
+                  <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 16px", borderTop: i > 0 ? "1px solid rgba(0,0,0,0.05)" : "none", background: "#fff" }}>
+                    {/* Avatar */}
+                    <div style={{ width: 34, height: 34, borderRadius: 99, background: col + "20", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: col }}>{initials}</span>
+                    </div>
+                    {/* Main info */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: col }}>{c.commercial.split(" ")[0]}</span>
+                        {isVtaPending && <span style={{ fontSize: 10, fontWeight: 700, color: "#FF9F0A", background: "#FF9F0A18", borderRadius: 4, padding: "1px 5px" }}>VTA?</span>}
+                        <span style={{ fontSize: 11, color: "#AEAEB2" }}>{c.heure}</span>
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "#1D1D1F", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {c.ville}{c.rue ? <span style={{ fontWeight: 400, color: "#6E6E73" }}> · {c.rue}</span> : ""}
+                      </div>
+                    </div>
+                    {/* Right badges */}
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
+                      <Badge color={sCol}>{c.status}</Badge>
+                      {c.box && <span style={{ fontSize: 10, color: "#AEAEB2", fontWeight: 500 }}>{c.box}</span>}
+                    </div>
+                  </div>
+                );
+              })}
+            </Card>
+            {!fD && !showAll && group.items.length > 30 && (
+              <div style={{ textAlign: "center", marginTop: 8 }}>
+                <Btn s="sm" v="ghost" onClick={function() { setShowAll(true); }}>Voir tout ({group.items.length - 30} de plus)</Btn>
+              </div>
+            )}
+          </div>
+        );
+      })
+  }
 </div>
 );
 }
