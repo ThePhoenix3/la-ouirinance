@@ -140,12 +140,14 @@ useEffect(function() {
           if (added.length === 0) return prev;
           console.log("[Flask] " + added.length + " nouveaux contrats reçus.");
           var merged = prev.concat(added);
-          var overrides = {};
-          merged.forEach(function(contract) {
-            var orig = DEMO_CONTRACTS.find(function(d) { return d.id === contract.id; });
-            if (!orig) overrides[contract.id] = { commercial: contract.commercial, vtaResolved: contract.vtaResolved, date: contract.date, heure: contract.heure, ville: contract.ville, rue: contract.rue, status: contract.status };
+          store.get(STORAGE_KEYS.contracts).then(function(existing) {
+            var overrides = existing || {};
+            merged.forEach(function(contract) {
+              var orig = DEMO_CONTRACTS.find(function(d) { return d.id === contract.id; });
+              if (!orig) overrides[contract.id] = { commercial: contract.commercial, vtaResolved: contract.vtaResolved, date: contract.date, heure: contract.heure, ville: contract.ville, rue: contract.rue, status: contract.status };
+            });
+            store.set(STORAGE_KEYS.contracts, overrides);
           });
-          store.set(STORAGE_KEYS.contracts, overrides);
           return merged;
         });
       }
