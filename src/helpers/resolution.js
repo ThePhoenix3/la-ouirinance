@@ -52,7 +52,7 @@ function getPendingResolutions(contracts, team, dailyPlan, cars) {
   });
 
   var pending = [];
-  var dates = [yesterday.getDay() === 0 ? null : yesterdayStr, today].filter(Boolean);
+  var dates = [yesterdayStr, today];
 
   dates.forEach(function(dateStr) {
     var dayPlan = (dailyPlan && dailyPlan[dateStr]) || {};
