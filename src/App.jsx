@@ -88,9 +88,16 @@ setCars(carsData || DEMO_CARS);
 var savedResolutions = await store.get(STORAGE_KEYS.contracts);
 if (!savedResolutions) { try { var lsCo = localStorage.getItem(STORAGE_KEYS.contracts); if (lsCo) { savedResolutions = JSON.parse(lsCo); await store.set(STORAGE_KEYS.contracts, savedResolutions); } } catch(e) {} }
 savedResolutions = savedResolutions || {};
+var demoIds = new Set(DEMO_CONTRACTS.map(function(c) { return c.id; }));
 var mergedContracts = DEMO_CONTRACTS.map(function(c) {
   var saved = savedResolutions[c.id];
-  return saved ? Object.assign({}, c, saved) : c;
+  if (!saved) return c;
+  return Object.assign({}, c, { commercial: saved.commercial || c.commercial, vtaResolved: saved.vtaResolved !== undefined ? saved.vtaResolved : c.vtaResolved });
+});
+Object.keys(savedResolutions).forEach(function(id) {
+  if (!demoIds.has(id) && savedResolutions[id].date) {
+    mergedContracts.push(Object.assign({ id: id }, savedResolutions[id]));
+  }
 });
 setContracts(mergedContracts);
 var loadedTeam = await store.get(STORAGE_KEYS.team) || DEMO_TEAM;
