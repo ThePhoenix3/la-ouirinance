@@ -36,7 +36,24 @@ function resolveVTA(vtaCode, date, dailyPlan, team) {
   var group = VTA_GROUPS[vtaCode];
   if (!group) return vtaCode;
   if (dailyPlan) {
-    var planDay = dailyPlan[date] || dailyPlan;
+    var planDay = dailyPlan[date] || {};
+
+    // Priorité 1 : codes VTA assignés manuellement dans le plan voiture
+    var manuallyAssigned = [];
+    Object.values(planDay).forEach(function(car) {
+      if (car && car.memberVtaCodes) {
+        Object.keys(car.memberVtaCodes).forEach(function(mid) {
+          if (car.memberVtaCodes[mid] === vtaCode) {
+            var m = team.find(function(t) { return t.id === parseInt(mid); });
+            if (m) manuallyAssigned.push(m.name);
+          }
+        });
+      }
+    });
+    if (manuallyAssigned.length === 1) return manuallyAssigned[0];
+    if (manuallyAssigned.length > 1) return { ambiguous: true, candidates: manuallyAssigned, vtaCode: vtaCode };
+
+    // Priorité 2 : fallback présence dans le plan
     var presentIds = [];
     Object.values(planDay).forEach(function(car) {
       if (car && car.members) presentIds = presentIds.concat(car.members);
@@ -55,11 +72,12 @@ function resolveVTA(vtaCode, date, dailyPlan, team) {
 // Détection des contrats ambigus à partir du planning du jour
 function getPendingResolutions(contracts, team, dailyPlan, cars) {
   var today = new Date().toISOString().split("T")[0];
+  var todayPlan = (dailyPlan && dailyPlan[today]) || {};
 
   // Construire la map membre → communes travaillées
   var memberCommunes = {}; // memberId → Set<string lowercase>
   cars.forEach(function(car) {
-    var plan = dailyPlan && dailyPlan[car.id];
+    var plan = todayPlan[car.id];
     if (!plan) return;
     var mc = plan.memberCommunes || {};
     Object.keys(mc).forEach(function(mid) {
@@ -128,6 +146,25 @@ function getPendingResolutions(contracts, team, dailyPlan, cars) {
 
     // ── VTA non résolu ─────────────────────────────────────────────────────────
     if (contract.vtaCode && !contract.vtaResolved) {
+      // Priorité 1 : codes VTA assignés manuellement dans le plan voiture
+      var manuallyAssigned = [];
+      cars.forEach(function(car) {
+        var carPlan = todayPlan[car.id];
+        if (carPlan && carPlan.memberVtaCodes) {
+          Object.keys(carPlan.memberVtaCodes).forEach(function(mid) {
+            if (carPlan.memberVtaCodes[mid] === contract.vtaCode) {
+              var m = team.find(function(t) { return t.id === parseInt(mid); });
+              if (m) manuallyAssigned.push(m);
+            }
+          });
+        }
+      });
+      if (manuallyAssigned.length === 1) {
+        pending.push({ type: 'auto', contract: contract, autoTo: manuallyAssigned[0], candidates: manuallyAssigned, reason: 'code VTA assigné' });
+        return;
+      }
+
+      // Priorité 2 : fallback VTA_GROUPS + présence + commune
       var group = VTA_GROUPS[contract.vtaCode];
       if (!group || group.length <= 1) return;
 
@@ -1558,7 +1595,13 @@ try {
 } catch(e) {}
 // Listeners temps réel — s'abonner après migration pour récupérer direct la bonne donnée
 unsubPlan = onSnapshot(doc(db, "agency", STORAGE_KEYS.dailyPlan), function(snap) {
-  setDailyPlan(snap.exists() ? (snap.data().data || null) : null);
+  var raw = snap.exists() ? (snap.data().data || null) : null;
+  if (raw && Object.keys(raw).length > 0 && !Object.keys(raw).some(function(k) { return /^\d{4}-\d{2}-\d{2}$/.test(k); })) {
+    var migrated = {}; migrated[new Date().toISOString().split("T")[0]] = raw;
+    store.set(STORAGE_KEYS.dailyPlan, migrated);
+    raw = migrated;
+  }
+  setDailyPlan(raw);
 });
 unsubObj = onSnapshot(doc(db, "agency", STORAGE_KEYS.objectives), function(snap) {
   setObjectives(snap.exists() ? (snap.data().data || {}) : {});
@@ -1681,7 +1724,13 @@ var saveContracts = function(c) {
   });
   store.set(STORAGE_KEYS.contracts, overrides);
 };
-var saveDailyPlan = function(p) { setDailyPlan(p); store.set(STORAGE_KEYS.dailyPlan, p); };
+var saveDailyPlan = function(todayPlan) {
+  var todayKey = new Date().toISOString().split("T")[0];
+  var full = Object.assign({}, dailyPlan || {});
+  full[todayKey] = todayPlan;
+  setDailyPlan(full);
+  store.set(STORAGE_KEYS.dailyPlan, full);
+};
 var saveObjectives = function(o) { setObjectives(o); store.set(STORAGE_KEYS.objectives, o); };
 var saveGroups = function(g) { setGroups(g); store.set(STORAGE_KEYS.groups, g); };
 
@@ -1767,6 +1816,7 @@ return (
 function DashboardTab({ team, contracts, saveContracts, dailyPlan, cars, lastSync, scraperStatus, objectives }) {
 // ── Dates & données ────────────────────────────────────────────────────────────
 var today    = new Date().toISOString().split("T")[0];
+var _dp = dailyPlan ? (dailyPlan[today] || {}) : {};
 var d3ago    = new Date(Date.now() - 3*86400000).toISOString().split("T")[0];
 var weekStart = (function(){ var d = new Date(); d.setDate(d.getDate() - (d.getDay()||7) + 1); return d.toISOString().split("T")[0]; })();
 var moStart  = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0];
@@ -1883,14 +1933,14 @@ var ResolutionWidget = (manualPending.length > 0 || autoPending.length > 0) ? (
 // ── Voitures du jour ──────────────────────────────────────────────────────────
 var passengerIds = new Set();
 (cars || []).forEach(function(car){
-  var cp = dailyPlan && dailyPlan[car.id];
+  var cp = _dp[car.id];
   if (cp && cp.members) cp.members.forEach(function(id){ passengerIds.add(id); });
 });
 function isCarInactive(car){ return car.driverId ? passengerIds.has(car.driverId) : false; }
 var CAR_PALETTE = ["#0071E3","#34C759","#FF9F0A","#AF52DE","#FF2D55","#5AC8FA","#FF6B35"];
 var activePlannedCars = (cars || []).filter(function(car){
   if (isCarInactive(car)) return false;
-  var cp = dailyPlan && dailyPlan[car.id];
+  var cp = _dp[car.id];
   return cp && (cp.sector || (cp.members && cp.members.length > 0));
 });
 
@@ -1949,7 +1999,7 @@ return (
     ) : (
       <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
         {activePlannedCars.map(function(car, idx){
-          var cp = dailyPlan[car.id] || {};
+          var cp = _dp[car.id] || {};
           var color = CAR_PALETTE[idx % CAR_PALETTE.length];
           var driver = team.find(function(m){ return m.id === car.driverId; });
           var passengers = (cp.members||[]).map(function(id){ return team.find(function(m){ return m.id===id; }); }).filter(Boolean).filter(function(m){ return !driver || m.id!==driver.id; });
@@ -2667,7 +2717,8 @@ function CommuneAutocomplete({ value, onChange, sectorName, isTalc }) {
 // CARS
 function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups }) {
   var CAR_PALETTE = ["#0071E3","#34C759","#FF9F0A","#AF52DE","#FF2D55","#5AC8FA","#FF6B35","#00B4D8"];
-  const [plan, setPlan] = useState(dailyPlan || {});
+  var _todayKey = new Date().toISOString().split("T")[0];
+  const [plan, setPlan] = useState((dailyPlan && dailyPlan[_todayKey]) || {});
   const [dragging, setDragging] = useState(null); // { memberId, fromCarId }
   const [dropTarget, setDropTarget] = useState(null); // carId or "pool"
   const [picker, setPicker] = useState(null); // carId
@@ -2749,6 +2800,14 @@ function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups }) {
     updatePlan(u);
   }
 
+  function setMemberVtaCode(cid, mid, code) {
+    var u = JSON.parse(JSON.stringify(plan));
+    if (!u[cid]) u[cid] = { members: [], sector: "", zoneType: "stratygo", vtaCode: "" };
+    if (!u[cid].memberVtaCodes) u[cid].memberVtaCodes = {};
+    u[cid].memberVtaCodes[mid] = code;
+    updatePlan(u);
+  }
+
   function setVtaCode(cid, v) {
     var u = JSON.parse(JSON.stringify(plan));
     if (!u[cid]) u[cid] = { members: [], sector: "", zoneType: "talc", vtaCode: "" };
@@ -2790,9 +2849,8 @@ function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups }) {
     );
   }
 
-  function MemberTile({ m, onRemove, isDriver, accent, isDrag, fromCarId, showVta }) {
+  function MemberTile({ m, onRemove, isDriver, accent, isDrag, fromCarId, vtaCode }) {
     var ops = Array.isArray(m.operators) ? m.operators : [m.operator].filter(Boolean);
-    var vtaCode = showVta ? VTA_PERSON_MAP[m.name] : null;
     return (
       <div
         draggable={isDrag}
@@ -2963,7 +3021,8 @@ function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups }) {
                   <span style={{ fontSize: 10, fontWeight: 700, color: accent, letterSpacing: 0.8, textTransform: "uppercase" }}>Conducteur</span>
                   {driver
                     ? <>
-                        <MemberTile m={driver} isDriver={true} accent={accent} isDrag={false} fromCarId={car.id} showVta={cp.zoneType === "talc"} />
+                        <MemberTile m={driver} isDriver={true} accent={accent} isDrag={false} fromCarId={car.id} vtaCode={cp.zoneType === "talc" ? ((cp.memberVtaCodes && cp.memberVtaCodes[driver.id]) || VTA_PERSON_MAP[driver.name] || null) : null} />
+                        {cp.zoneType === "talc" && <Sel value={(cp.memberVtaCodes && cp.memberVtaCodes[driver.id]) || ""} onChange={function(v) { setMemberVtaCode(car.id, driver.id, v); }} placeholder="Code VTA..." options={Object.keys(VTA_GROUPS).map(function(code) { return { value: code, label: code }; })} style={{ fontSize: 11, padding: "4px 8px", borderRadius: 8, width: 160 }} />}
                         <CommuneAutocomplete value={(cp.memberCommunes && cp.memberCommunes[driver.id]) || ""} onChange={function(v) { setMemberCommune(car.id, driver.id, v); }} sectorName={cp.sector} isTalc={cp.zoneType === "talc"} />
                       </>
                     : <div style={{ width: 185, height: 70, border: "2px dashed " + accent + "44", borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", color: accent + "88", fontSize: 12 }}>Aucun conducteur</div>
@@ -2982,7 +3041,8 @@ function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups }) {
                     {passengers.map(function(m) {
                       return (
                         <div key={m.id} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                          <MemberTile m={m} onRemove={function() { removePassenger(car.id, m.id); }} isDriver={false} accent={accent} isDrag={true} fromCarId={car.id} showVta={cp.zoneType === "talc"} />
+                          <MemberTile m={m} onRemove={function() { removePassenger(car.id, m.id); }} isDriver={false} accent={accent} isDrag={true} fromCarId={car.id} vtaCode={cp.zoneType === "talc" ? ((cp.memberVtaCodes && cp.memberVtaCodes[m.id]) || VTA_PERSON_MAP[m.name] || null) : null} />
+                          {cp.zoneType === "talc" && <Sel value={(cp.memberVtaCodes && cp.memberVtaCodes[m.id]) || ""} onChange={function(v) { setMemberVtaCode(car.id, m.id, v); }} placeholder="Code VTA..." options={Object.keys(VTA_GROUPS).map(function(code) { return { value: code, label: code }; })} style={{ fontSize: 11, padding: "4px 8px", borderRadius: 8, width: 160 }} />}
                           <CommuneAutocomplete value={(cp.memberCommunes && cp.memberCommunes[m.id]) || ""} onChange={function(v) { setMemberCommune(car.id, m.id, v); }} sectorName={cp.sector} isTalc={cp.zoneType === "talc"} />
                         </div>
                       );
@@ -3005,9 +3065,10 @@ function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups }) {
                 <div style={{ padding: "0 18px 14px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <span style={{ fontSize: 11, color: "#AEAEB2", fontWeight: 600 }}>Codes VTA :</span>
                   {[driver, ...passengers].filter(Boolean).map(function(m) {
-                    var code = VTA_PERSON_MAP[m.name];
+                    var manualCode = cp.memberVtaCodes && cp.memberVtaCodes[m.id];
+                    var code = manualCode || VTA_PERSON_MAP[m.name];
                     if (!code) return null;
-                    return <span key={m.id} style={{ fontSize: 11, fontWeight: 700, color: "#FF3B30", background: "#FF3B3010", padding: "2px 8px", borderRadius: 99 }}>{code} <span style={{ fontWeight: 400, color: "#6E6E73" }}>({m.name.split(' ')[0]})</span></span>;
+                    return <span key={m.id} style={{ fontSize: 11, fontWeight: 700, color: manualCode ? "#0071E3" : "#FF3B30", background: manualCode ? "#0071E310" : "#FF3B3010", padding: "2px 8px", borderRadius: 99 }}>{code} <span style={{ fontWeight: 400, color: "#6E6E73" }}>({m.name.split(' ')[0]})</span></span>;
                   })}
                 </div>
               )}
@@ -3063,6 +3124,7 @@ function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups }) {
 
 // CONTRACTS
 function ContractsTab({ contracts, team, dailyPlan, cars, saveContracts }) {
+var _dp = dailyPlan ? (dailyPlan[new Date().toISOString().split("T")[0]] || {}) : {};
 const [view, setView] = useState(null); // null | "today" | "week" | "month" | "quality"
 const [fD, setFD] = useState("");
 const [fC, setFC] = useState("");
@@ -3084,9 +3146,24 @@ function resolveAllVTA() {
     var group = VTA_GROUPS[c.vtaCode];
     if (!group) return Object.assign({}, c, { vtaResolved: true });
     var resolved = c.commercial;
-    if (dailyPlan) {
+    var cPlan = dailyPlan ? (dailyPlan[c.date] || _dp) : _dp;
+    // Priorité 1 : codes VTA assignés manuellement
+    var manualMatch = [];
+    Object.values(cPlan).forEach(function(entry) {
+      if (entry && entry.memberVtaCodes) {
+        Object.keys(entry.memberVtaCodes).forEach(function(mid) {
+          if (entry.memberVtaCodes[mid] === c.vtaCode) {
+            var m = team.find(function(t) { return t.id === parseInt(mid); });
+            if (m) manualMatch.push(m.name);
+          }
+        });
+      }
+    });
+    if (manualMatch.length === 1) resolved = manualMatch[0];
+    else {
+      // Priorité 2 : présence dans le plan
       var presentIds = [];
-      Object.values(dailyPlan).forEach(function(entry) { if (entry && entry.members) presentIds = presentIds.concat(entry.members); });
+      Object.values(cPlan).forEach(function(entry) { if (entry && entry.members) presentIds = presentIds.concat(entry.members); });
       var presentNames = presentIds.map(function(id) { var m = team.find(function(t) { return t.id === id; }); return m ? m.name : null; }).filter(Boolean);
       var inGroup = group.filter(function(name) { return presentNames.indexOf(name) >= 0; });
       if (inGroup.length === 1) resolved = inGroup[0];
@@ -3182,7 +3259,7 @@ if (view === "today") {
   var todayPassIds = new Set();
   if (dailyPlan && cars) {
     cars.forEach(function(car) {
-      var cp = dailyPlan[car.id];
+      var cp = _dp[car.id];
       if (cp && cp.members) cp.members.forEach(function(id) { todayPassIds.add(id); });
     });
   }
@@ -3190,23 +3267,23 @@ if (view === "today") {
   function getCarMembersT(car) {
     var ms = [];
     if (car.driverId) { var drv = team.find(function(m){ return m.id === car.driverId; }); if (drv) ms.push(drv); }
-    var cp = dailyPlan ? dailyPlan[car.id] : null;
+    var cp = _dp[car.id] || null;
     if (cp && cp.members) cp.members.forEach(function(id) { var m = team.find(function(t){ return t.id === id; }); if (m) ms.push(m); });
     return ms;
   }
   function personCountT(name) { return todayC.filter(function(c){ return c.commercial === name; }).length; }
   function memberCommuneT(car, memberId) {
-    if (!dailyPlan || !dailyPlan[car.id]) return "";
-    return (dailyPlan[car.id].memberCommunes || {})[memberId] || "";
+    if (!_dp[car.id]) return "";
+    return (_dp[car.id].memberCommunes || {})[memberId] || "";
   }
   function carTotalT(car) {
     return getCarMembersT(car).reduce(function(sum, m){ return sum + personCountT(m.name); }, 0);
   }
   // Find which car a driver rides in (for inactive display)
   function ridingInCarT(driverId) {
-    if (!dailyPlan || !cars) return null;
+    if (!cars) return null;
     var found = cars.find(function(car) {
-      var cp = dailyPlan[car.id];
+      var cp = _dp[car.id];
       return cp && cp.members && cp.members.indexOf(driverId) >= 0;
     });
     return found || null;
