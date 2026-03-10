@@ -80,9 +80,10 @@ function getPendingResolutions(contracts, team, dailyPlan, cars) {
       return false;
     }
 
-    var dayC = contracts.filter(function(c) { return c.date === dateStr && !isCaduque(c); });
+    var dayC = contracts.filter(function(c) { return c.date === dateStr; });
 
     dayC.forEach(function(contract) {
+      if (isCaduque(contract) && !contract.vtaCode) return;
       var ville = (contract.ville || '').trim();
 
       if (contract.vstLogin && lentMap[contract.vstLogin]) {
