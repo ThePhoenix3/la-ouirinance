@@ -98,7 +98,7 @@ var mergedContracts = DEMO_CONTRACTS.map(function(c) {
   return Object.assign({}, c, { commercial: useCommercial, vtaResolved: saved.vtaResolved !== undefined ? saved.vtaResolved : c.vtaResolved });
 });
 Object.keys(savedResolutions).forEach(function(id) {
-  if (!demoIds.has(id) && savedResolutions[id].date) {
+  if (!demoIds.has(id) && savedResolutions[id].date && id.indexOf('byg-') !== 0) {
     mergedContracts.push(Object.assign({ id: id }, savedResolutions[id]));
   }
 });
@@ -114,7 +114,7 @@ unsubContracts = onSnapshot(doc(db, "agency", STORAGE_KEYS.contracts), function(
     return Object.assign({}, c, { commercial: useCommercial, vtaResolved: saved.vtaResolved !== undefined ? saved.vtaResolved : c.vtaResolved });
   });
   Object.keys(overrides).forEach(function(id) {
-    if (!dIds.has(id) && overrides[id].date) {
+    if (!dIds.has(id) && overrides[id].date && id.indexOf('byg-') !== 0) {
       merged.push(Object.assign({ id: id }, overrides[id]));
     }
   });
