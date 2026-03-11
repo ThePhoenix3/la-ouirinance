@@ -94,7 +94,8 @@ var demoIds = new Set(DEMO_CONTRACTS.map(function(c) { return c.id; }));
 var mergedContracts = DEMO_CONTRACTS.map(function(c) {
   var saved = savedResolutions[c.id];
   if (!saved) return c;
-  return Object.assign({}, c, { commercial: saved.commercial || c.commercial, vtaResolved: saved.vtaResolved !== undefined ? saved.vtaResolved : c.vtaResolved });
+  var useCommercial = c.id.indexOf('byg-') === 0 ? c.commercial : (saved.commercial || c.commercial);
+  return Object.assign({}, c, { commercial: useCommercial, vtaResolved: saved.vtaResolved !== undefined ? saved.vtaResolved : c.vtaResolved });
 });
 Object.keys(savedResolutions).forEach(function(id) {
   if (!demoIds.has(id) && savedResolutions[id].date) {
@@ -109,7 +110,8 @@ unsubContracts = onSnapshot(doc(db, "agency", STORAGE_KEYS.contracts), function(
   var merged = DEMO_CONTRACTS.map(function(c) {
     var saved = overrides[c.id];
     if (!saved) return c;
-    return Object.assign({}, c, { commercial: saved.commercial || c.commercial, vtaResolved: saved.vtaResolved !== undefined ? saved.vtaResolved : c.vtaResolved });
+    var useCommercial = c.id.indexOf('byg-') === 0 ? c.commercial : (saved.commercial || c.commercial);
+    return Object.assign({}, c, { commercial: useCommercial, vtaResolved: saved.vtaResolved !== undefined ? saved.vtaResolved : c.vtaResolved });
   });
   Object.keys(overrides).forEach(function(id) {
     if (!dIds.has(id) && overrides[id].date) {

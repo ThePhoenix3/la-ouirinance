@@ -1169,6 +1169,29 @@ function carnetToContracts(rows, scrapedAt) {
   });
 }
 
+var BOUYGUES_VENDEUR_MAP = {
+  'CHEIKH ABDELLAH':      'Abdellah Cheikh',
+  'ATF ALI':              'Ali Atf',
+  'KOCAK ILHAN':          'Ilhan Kocak',
+  'OUIRINI INES':         'Ines Ouirini',
+  'OUIRINI OUISSEM':      'Ouissem Ouirini',
+  'NOUAR LAKHDAR':        'Abdel Nouar',
+  'MERTZ LEO':            'Leo Merde',
+  'GUERITAULT PAUL':      'Paul Geriltault',
+  'BELKESSA DANIA NAHIDA':'Lyna Belkessa',
+  'LEGRAND DJANY':        'Djany Legrand',
+  'LARECH MOHAMED':       'Mohamed Mehdi Larech',
+  'LEGRAND STEPHANE':     'Stephane Legrand',
+  'ATROUNE HAMID':        'Hamid Atroune',
+  'EL JAZOULI ADAM':      'Adam El Jazouli',
+  'PEREIRA SANDRA':       'Sandra Pereira',
+  'MOIZE VICTOR':         'Victor Moize',
+  'MENDOUSSE MELODIE':    'Melodie Mendousse',
+  'MBENGUE PAPE OMAR':    'Omar Mbengue',
+  'WAHID NORA':           'Nora Wahid',
+  'SHEHU PROSPER':        'Prosper Shehu',
+};
+
 function bouyguesCarnetToContracts(rows) {
   var bouyguesStatusMap = {
     'active': 'Branché',
@@ -1213,7 +1236,7 @@ function bouyguesCarnetToContracts(rows) {
     var dt = convertDate(r.date_inscription);
     return {
       id: 'byg-' + r.num_contrat,
-      commercial: toTitleCase(r.vendeur),
+      commercial: BOUYGUES_VENDEUR_MAP[(r.vendeur || '').trim().toUpperCase()] || toTitleCase(r.vendeur),
       date: dt.date,
       heure: dt.heure,
       ville: (r.ville || '').trim(),
