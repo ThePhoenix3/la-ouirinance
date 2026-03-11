@@ -1055,7 +1055,24 @@ return [
 {id:"vta-876579",commercial:"Abdellah Cheikh",vtaCode:"vta-zourhalm",vtaResolved:false,date:"2026-01-12",heure:"11:31",ville:"Niort",rue:"26 RUE MAURICE CHEVALIER",operator:"Free",type:"Fibre",status:"Valide"}
 ];
 }
-function carnetToContracts(rows) {
+var PROXAD_MINUTES = [8*60+45, 10*60+45, 12*60+45, 14*60+45, 16*60+45, 18*60+45, 20*60+45, 22*60+45];
+
+function proxadRunsBetween(fromMs, toMs) {
+  var count = 0;
+  var d = new Date(fromMs);
+  d.setHours(0, 0, 0, 0);
+  while (d.getTime() <= toMs) {
+    for (var i = 0; i < PROXAD_MINUTES.length; i++) {
+      var runMs = d.getTime() + PROXAD_MINUTES[i] * 60000;
+      if (runMs > fromMs && runMs <= toMs) count++;
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  return count;
+}
+
+function carnetToContracts(rows, scrapedAt) {
+  var scrapedAtMs = scrapedAt ? new Date(scrapedAt).getTime() : Date.now();
   var vstMap = {};
   DEMO_TEAM.forEach(function(m) {
     var parts = m.name.split(' ');
@@ -1105,7 +1122,7 @@ function carnetToContracts(rows) {
     if (!status) {
       if (!rawEtat || rawEtat === 'vente validée') {
         var inscTime = new Date(r.date_inscription).getTime();
-        status = (Date.now() - inscTime > 2 * 60 * 60 * 1000) ? 'RIB MANQUANT' : 'Nouveau';
+        status = (proxadRunsBetween(inscTime, scrapedAtMs) >= 2) ? 'RIB MANQUANT' : 'Nouveau';
       } else if (rawEtat === 'inscription ok') {
         var rdvInfo = (r.info_rdv_sync || '').trim();
         status = rdvInfo ? 'RDV pris' : 'En attente RDV';
@@ -1151,6 +1168,8 @@ function carnetToContracts(rows) {
   });
 }
 
-const DEMO_CONTRACTS = carnetData.length > 0 ? carnetToContracts(carnetData) : makeDemoContracts().concat(makeVTAContracts());
+var carnetRows = carnetData.rows || carnetData;
+var scrapedAt = carnetData.scraped_at || null;
+const DEMO_CONTRACTS = carnetRows.length > 0 ? carnetToContracts(carnetRows, scrapedAt) : makeDemoContracts().concat(makeVTAContracts());
 
 export { DEMO_CONTRACTS, carnetToContracts };

@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import json
 import os
+import datetime
 
 URL = "https://vad.proxad.net/stats/carnet.pl"
 
@@ -46,9 +47,14 @@ def scrape():
             seen.add(key)
             unique_rows.append(row)
 
+    output = {
+        "scraped_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "rows": unique_rows
+    }
+
     output_path = os.path.join(os.path.dirname(__file__), "src", "data.json")
     with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(unique_rows, f, ensure_ascii=False, indent=2)
+        json.dump(output, f, ensure_ascii=False, indent=2)
 
     print(f"Total: {len(unique_rows)} unique rows → src/data.json")
 

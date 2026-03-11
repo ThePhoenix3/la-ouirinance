@@ -5,7 +5,7 @@ var CARNET_BY_VILLE_ALL = {};
 var CARNET_BY_VILLE_MONTH = {};
 (function() {
   var ML = ["jan","fev","mar","avr","mai","jun","jul","aou","sep","oct","nov","dec"];
-  carnetData.forEach(function(row) {
+  (carnetData.rows || carnetData).forEach(function(row) {
     var v = (row.ville || "").toUpperCase().trim();
     if (!v) return;
     CARNET_BY_VILLE_ALL[v] = (CARNET_BY_VILLE_ALL[v] || 0) + 1;

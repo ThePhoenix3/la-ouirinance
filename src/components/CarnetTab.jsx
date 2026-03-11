@@ -5,7 +5,7 @@ import { statusColor } from "../helpers/status.js";
 
 function CarnetTab() {
   var [search, setSearch] = useState("");
-  var rows = carnetData;
+  var rows = carnetData.rows || carnetData;
 
   var filtered = useMemo(function() {
     if (!search.trim()) return rows;

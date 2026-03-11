@@ -89,10 +89,10 @@ src/
 
 ### Cycle de vie statut (contrats blancs du carnet)
 ```
-etat_commande vide + < 2h       →  "Nouveau"        (compté normalement)
-etat_commande vide + ≥ 2h       →  "RIB MANQUANT"   (caduque, exclu des stats)
-"vente validée" + < 2h           →  "Nouveau"        (compté normalement)
-"vente validée" + ≥ 2h           →  "RIB MANQUANT"   (caduque)
+etat_commande vide + < 2 cycles  →  "Nouveau"        (compté normalement)
+etat_commande vide + ≥ 2 cycles  →  "RIB MANQUANT"   (caduque, exclu des stats)
+"vente validée" + < 2 cycles     →  "Nouveau"        (compté normalement)
+"vente validée" + ≥ 2 cycles     →  "RIB MANQUANT"   (caduque)
 "vente validée j+7"              →  "RIB MANQUANT"   (caduque)
 "vente abandonnée"               →  "RIB MANQUANT"   (caduque)
 "inscription ok" (sans rdv)      →  "En attente RDV" (compté)
