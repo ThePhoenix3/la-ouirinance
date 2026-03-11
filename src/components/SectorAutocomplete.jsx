@@ -5,6 +5,20 @@ import { JACHERE, JACHERE_TALC } from "../constants/jachere.js";
 var ALL_SECTORS = Object.keys(JACHERE).map(function(n) { return { name: n, talc: false }; })
   .concat(Object.keys(JACHERE_TALC).map(function(n) { return { name: n, talc: true }; }));
 
+var ALL_COMMUNES = [];
+Object.keys(JACHERE).forEach(function(sectorName) {
+  var s = JACHERE[sectorName];
+  s.communes.forEach(function(c) {
+    ALL_COMMUNES.push({ v: c.v, p: c.p, sector: sectorName });
+  });
+});
+Object.keys(JACHERE_TALC).forEach(function(sectorName) {
+  var s = JACHERE_TALC[sectorName];
+  s.communes.forEach(function(c) {
+    ALL_COMMUNES.push({ v: c.v, p: c.p, sector: sectorName });
+  });
+});
+
 function SectorAutocomplete({ value, onSelect }) {
   var [open, setOpen] = useState(false);
   var q = (value || "").trim().toUpperCase();
@@ -40,12 +54,10 @@ function SectorAutocomplete({ value, onSelect }) {
   );
 }
 
-function CommuneAutocomplete({ value, onChange, sectorName, isTalc }) {
+function CommuneAutocomplete({ value, onChange }) {
   var [open, setOpen] = useState(false);
-  var sectorData = sectorName ? (isTalc ? JACHERE_TALC[sectorName] : JACHERE[sectorName]) : null;
-  var communes = sectorData ? sectorData.communes : [];
   var q = (value || "").trim().toUpperCase();
-  var matches = communes.filter(function(c) {
+  var matches = ALL_COMMUNES.filter(function(c) {
     return q.length >= 1 && c.v.indexOf(q) >= 0 && c.v !== q;
   });
   return (
@@ -55,20 +67,19 @@ function CommuneAutocomplete({ value, onChange, sectorName, isTalc }) {
         onChange={function(e) { onChange(e.target.value); setOpen(true); }}
         onFocus={function() { setOpen(true); }}
         onBlur={function() { setTimeout(function() { setOpen(false); }, 150); }}
-        placeholder={sectorName ? "Commune..." : "Secteur d'abord"}
-        disabled={!sectorName}
-        style={{ fontSize: 11, padding: "4px 8px", borderRadius: 8, border: "1px solid #E5E5EA", outline: "none", width: 130, color: "#1D1D1F", background: sectorName ? "#fff" : "#F5F5F7", fontFamily: "inherit", boxSizing: "border-box" }}
+        placeholder="Commune..."
+        style={{ fontSize: 11, padding: "4px 8px", borderRadius: 8, border: "1px solid #E5E5EA", outline: "none", width: 130, color: "#1D1D1F", background: "#fff", fontFamily: "inherit", boxSizing: "border-box" }}
       />
       {open && matches.length > 0 && (
-        <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, background: "#fff", borderRadius: 10, boxShadow: "0 4px 20px rgba(0,0,0,0.15)", zIndex: 300, minWidth: 150, overflow: "hidden", border: "1px solid #E5E5EA" }}>
-          {matches.slice(0, 7).map(function(c) {
+        <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, background: "#fff", borderRadius: 10, boxShadow: "0 4px 20px rgba(0,0,0,0.15)", zIndex: 300, minWidth: 220, overflow: "hidden", border: "1px solid #E5E5EA" }}>
+          {matches.slice(0, 7).map(function(c, i) {
             return (
-              <div key={c.v} onMouseDown={function() { onChange(c.v); setOpen(false); }}
-                style={{ padding: "7px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", color: "#1D1D1F" }}
+              <div key={c.v + "-" + c.sector} onMouseDown={function() { onChange(c.v); setOpen(false); }}
+                style={{ padding: "7px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, color: "#1D1D1F" }}
                 onMouseEnter={function(e) { e.currentTarget.style.background = "#F5F5F7"; }}
                 onMouseLeave={function(e) { e.currentTarget.style.background = ""; }}>
-                <span>{c.v}</span>
-                <span style={{ fontSize: 10, color: "#AEAEB2" }}>{c.p.toLocaleString("fr-FR")} pr.</span>
+                <span style={{ whiteSpace: "nowrap" }}>{c.v}</span>
+                <span style={{ fontSize: 9, color: "#AEAEB2", whiteSpace: "nowrap" }}>{c.sector}</span>
               </div>
             );
           })}

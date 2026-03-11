@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Badge, Card, Btn, Sel, Inp, Modal } from "./ui.jsx";
 import { ROLES, ROLE_LABELS, ROLE_COLORS, OPERATORS, OP_COLORS } from "../constants/roles.js";
 import { VTA_GROUPS } from "../constants/vta.js";
-import { SectorAutocomplete, CommuneAutocomplete } from "./SectorAutocomplete.jsx";
+import { CommuneAutocomplete } from "./SectorAutocomplete.jsx";
 import { localDateStr } from "../helpers/date.js";
 
 function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups }) {
@@ -67,12 +67,6 @@ function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups }) {
     if (!u[toCarId]) u[toCarId] = { members: [], sector: "", zoneType: "stratygo", vtaCode: "" };
     if (u[toCarId].members.indexOf(mid) < 0) u[toCarId].members.push(mid);
     updatePlan(u);
-  }
-
-  function setSector(cid, s) {
-    var u = JSON.parse(JSON.stringify(plan));
-    if (!u[cid]) u[cid] = { members: [], sector: "", zoneType: "stratygo", vtaCode: "" };
-    u[cid].sector = s; updatePlan(u);
   }
 
   function setZoneType(cid, z) {
@@ -265,7 +259,7 @@ function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups }) {
 
           return (
             <div key={car.id}
-              style={{ background: inactive ? "#F5F5F7" : isDrop ? accent + "07" : "#FAFAFA", borderRadius: 18, border: inactive ? "1px solid #E5E5EA" : isDrop ? "2px solid " + accent + "55" : "1px solid #E5E5EA", overflow: "hidden", transition: "background 0.15s, border-color 0.15s", opacity: inactive ? 0.6 : 1 }}
+              style={{ background: inactive ? "#F5F5F7" : isDrop ? accent + "07" : "#FAFAFA", borderRadius: 18, border: inactive ? "1px solid #E5E5EA" : isDrop ? "2px solid " + accent + "55" : "1px solid #E5E5EA", transition: "background 0.15s, border-color 0.15s", opacity: inactive ? 0.6 : 1 }}
               onDragOver={inactive ? undefined : function(e) { e.preventDefault(); setDropTarget(car.id); }}
               onDragLeave={inactive ? undefined : function(e) { if (!e.currentTarget.contains(e.relatedTarget)) setDropTarget(null); }}
               onDrop={inactive ? undefined : function(e) {
@@ -279,7 +273,7 @@ function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups }) {
               }}>
 
               {/* Header */}
-              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 18px", borderBottom: "1px solid #F0F0F0", background: inactive ? "#EEEEEF" : accent + "08", flexWrap: "wrap" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 18px", borderBottom: "1px solid #F0F0F0", background: inactive ? "#EEEEEF" : accent + "08", flexWrap: "wrap", borderRadius: "17px 17px 0 0" }}>
                 <div style={{ width: 10, height: 10, borderRadius: 99, background: inactive ? "#AEAEB2" : accent, flexShrink: 0 }} />
                 <span style={{ fontSize: 14, fontWeight: 700, color: inactive ? "#AEAEB2" : "#1D1D1F", letterSpacing: -0.3, flex: 1 }}>{car.name}</span>
                 {inactive
@@ -288,13 +282,6 @@ function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups }) {
                     </span>
                   : <>
                       <span style={{ fontSize: 12, color: "#AEAEB2", fontWeight: 500 }}>{passengers.length + (driver ? 1 : 0)}/{car.seats}</span>
-                      <SectorAutocomplete value={cp.sector || ""} onSelect={function(name, zoneType) {
-                        var u = JSON.parse(JSON.stringify(plan));
-                        if (!u[car.id]) u[car.id] = { members: [], sector: "", zoneType: "stratygo", vtaCode: "" };
-                        u[car.id].sector = name;
-                        if (zoneType) { u[car.id].zoneType = zoneType; if (zoneType === "stratygo") u[car.id].vtaCode = ""; }
-                        updatePlan(u);
-                      }} />
                       <div style={{ display: "flex", borderRadius: 8, overflow: "hidden", border: "1px solid #E5E5EA" }}>
                         <button onClick={function() { setZoneType(car.id, "stratygo"); }} style={{ padding: "3px 8px", fontSize: 10, fontWeight: 700, border: "none", cursor: "pointer", background: cp.zoneType !== "talc" ? "#1D1D1F" : "#F5F5F7", color: cp.zoneType !== "talc" ? "#fff" : "#AEAEB2", fontFamily: "inherit" }}>Stratygo</button>
                         <button onClick={function() { setZoneType(car.id, "talc"); }} style={{ padding: "3px 8px", fontSize: 10, fontWeight: 700, border: "none", cursor: "pointer", background: cp.zoneType === "talc" ? "#FF3B30" : "#F5F5F7", color: cp.zoneType === "talc" ? "#fff" : "#AEAEB2", fontFamily: "inherit" }}>TALC</button>
@@ -313,7 +300,7 @@ function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups }) {
                     ? <>
                         <MemberTile m={driver} isDriver={true} accent={accent} isDrag={false} fromCarId={car.id} vtaCode={cp.zoneType === "talc" ? ((cp.memberVtaCodes && cp.memberVtaCodes[driver.id]) || VTA_PERSON_MAP[driver.name] || null) : null} />
                         {cp.zoneType === "talc" && <Sel value={(cp.memberVtaCodes && cp.memberVtaCodes[driver.id]) || ""} onChange={function(v) { setMemberVtaCode(car.id, driver.id, v); }} placeholder="Code VTA..." options={Object.keys(VTA_GROUPS).map(function(code) { return { value: code, label: code }; })} style={{ fontSize: 11, padding: "4px 8px", borderRadius: 8, width: 160 }} />}
-                        <CommuneAutocomplete value={(cp.memberCommunes && cp.memberCommunes[driver.id]) || ""} onChange={function(v) { setMemberCommune(car.id, driver.id, v); }} sectorName={cp.sector} isTalc={cp.zoneType === "talc"} />
+                        <CommuneAutocomplete value={(cp.memberCommunes && cp.memberCommunes[driver.id]) || ""} onChange={function(v) { setMemberCommune(car.id, driver.id, v); }} />
                       </>
                     : <div style={{ width: 185, height: 70, border: "2px dashed " + accent + "44", borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", color: accent + "88", fontSize: 12 }}>Aucun conducteur</div>
                   }
@@ -333,7 +320,7 @@ function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups }) {
                         <div key={m.id} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                           <MemberTile m={m} onRemove={function() { removePassenger(car.id, m.id); }} isDriver={false} accent={accent} isDrag={true} fromCarId={car.id} vtaCode={cp.zoneType === "talc" ? ((cp.memberVtaCodes && cp.memberVtaCodes[m.id]) || VTA_PERSON_MAP[m.name] || null) : null} />
                           {cp.zoneType === "talc" && <Sel value={(cp.memberVtaCodes && cp.memberVtaCodes[m.id]) || ""} onChange={function(v) { setMemberVtaCode(car.id, m.id, v); }} placeholder="Code VTA..." options={Object.keys(VTA_GROUPS).map(function(code) { return { value: code, label: code }; })} style={{ fontSize: 11, padding: "4px 8px", borderRadius: 8, width: 160 }} />}
-                          <CommuneAutocomplete value={(cp.memberCommunes && cp.memberCommunes[m.id]) || ""} onChange={function(v) { setMemberCommune(car.id, m.id, v); }} sectorName={cp.sector} isTalc={cp.zoneType === "talc"} />
+                          <CommuneAutocomplete value={(cp.memberCommunes && cp.memberCommunes[m.id]) || ""} onChange={function(v) { setMemberCommune(car.id, m.id, v); }} />
                         </div>
                       );
                     })}
