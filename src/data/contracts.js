@@ -1,4 +1,5 @@
 import carnetData from "../data.json";
+import bouyguesData from "../data_bouygues.json";
 import { VTA_GROUPS } from "../constants/vta.js";
 import { DEMO_TEAM } from "./team.js";
 
@@ -1168,8 +1169,69 @@ function carnetToContracts(rows, scrapedAt) {
   });
 }
 
+function bouyguesCarnetToContracts(rows) {
+  var bouyguesStatusMap = {
+    'active': 'Branché',
+    'vente validée': 'RDV pris',
+    'saisie': 'Call manquant',
+  };
+
+  function mapBouyguesStatus(raw) {
+    var lower = (raw || '').trim().toLowerCase();
+    if (bouyguesStatusMap[lower]) return bouyguesStatusMap[lower];
+    if (lower.indexOf('ko') === 0) return 'Annulé';
+    if (lower.indexOf('standby') === 0) return 'Call manquant';
+    return 'Annulé';
+  }
+
+  function extractBox(produit) {
+    if (!produit) return '';
+    var p = produit.toLowerCase();
+    if (p.indexOf('ultym') !== -1) return 'ULTYM';
+    if (p.indexOf('must') !== -1) return 'MUST';
+    if (p.indexOf('fit') !== -1) return 'FIT';
+    return produit;
+  }
+
+  function toTitleCase(str) {
+    return (str || '').toLowerCase().replace(/(?:^|\s)\S/g, function(c) { return c.toUpperCase(); });
+  }
+
+  function convertDate(ddmmyyyy) {
+    if (!ddmmyyyy) return { date: '', heure: '' };
+    var parts = ddmmyyyy.split(' ');
+    var datePart = parts[0] || '';
+    var timePart = parts[1] || '';
+    var d = datePart.split('/');
+    if (d.length === 3) {
+      return { date: d[2] + '-' + d[1] + '-' + d[0], heure: timePart.substring(0, 5) };
+    }
+    return { date: datePart, heure: timePart.substring(0, 5) };
+  }
+
+  return rows.map(function(r) {
+    var dt = convertDate(r.date_inscription);
+    return {
+      id: 'byg-' + r.num_contrat,
+      commercial: toTitleCase(r.vendeur),
+      date: dt.date,
+      heure: dt.heure,
+      ville: (r.ville || '').trim(),
+      cp: (r.cp || '').trim(),
+      operator: 'Bouygues',
+      type: 'Fibre',
+      box: extractBox(r.produit),
+      status: mapBouyguesStatus(r.etat_commande),
+      byLogin: (r.login || '').trim(),
+    };
+  });
+}
+
 var carnetRows = carnetData.rows || carnetData;
 var scrapedAt = carnetData.scraped_at || null;
-const DEMO_CONTRACTS = carnetRows.length > 0 ? carnetToContracts(carnetRows, scrapedAt) : makeDemoContracts().concat(makeVTAContracts());
+var bouyguesRows = bouyguesData.rows || [];
+var freeContracts = carnetRows.length > 0 ? carnetToContracts(carnetRows, scrapedAt) : makeDemoContracts().concat(makeVTAContracts());
+var bouyguesContracts = bouyguesRows.length > 0 ? bouyguesCarnetToContracts(bouyguesRows) : [];
+const DEMO_CONTRACTS = freeContracts.concat(bouyguesContracts);
 
-export { DEMO_CONTRACTS, carnetToContracts };
+export { DEMO_CONTRACTS, carnetToContracts, bouyguesCarnetToContracts };

@@ -1,15 +1,17 @@
 import React, { useState, useMemo } from "react";
 import carnetData from "../data.json";
+import bouyguesData from "../data_bouygues.json";
 
 function CarnetTab() {
   var [tab, setTab] = useState("vst");
   var [search, setSearch] = useState("");
   var rows = carnetData.rows || carnetData;
+  var bygRows = bouyguesData.rows || [];
 
   var vstRows = useMemo(function() { return rows.filter(function(r) { return r.login && r.login.indexOf("vst-") === 0; }); }, [rows]);
   var vtaRows = useMemo(function() { return rows.filter(function(r) { return r.login && r.login.indexOf("vta-") === 0; }); }, [rows]);
 
-  var activeRows = tab === "vst" ? vstRows : vtaRows;
+  var activeRows = tab === "vst" ? vstRows : tab === "vta" ? vtaRows : bygRows;
 
   var filtered = useMemo(function() {
     if (!search.trim()) return activeRows;
@@ -32,6 +34,26 @@ function CarnetTab() {
     "vente abandonée": "SlateGrey",
   };
 
+  var BOUYGUES_ROW_COLORS = {
+    "active": "lightgreen",
+    "vente validée": "WhiteSmoke",
+    "saisie": "#FFD699",
+  };
+
+  function getRowColor(row) {
+    if (tab === "bouygues") {
+      var etat = (row["etat_commande"] || "").trim().toLowerCase();
+      if (BOUYGUES_ROW_COLORS[etat]) return BOUYGUES_ROW_COLORS[etat];
+      if (etat.indexOf("ko") === 0) return "SlateGrey";
+      if (etat.indexOf("standby") === 0) return "#FFD699";
+      return "#fff";
+    }
+    var status = row["etat_commande"] || "";
+    return ROW_COLORS[status.toLowerCase()] || "#fff";
+  }
+
+  var TAB_COLORS = { vst: "#1D1D1F", vta: "#FF3B30", bouygues: "#0055A4" };
+
   var tabStyle = function(t) {
     var active = tab === t;
     return {
@@ -41,16 +63,17 @@ function CarnetTab() {
       border: "none",
       cursor: "pointer",
       borderRadius: "10px 10px 0 0",
-      background: active ? (t === "vst" ? "#1D1D1F" : "#FF3B30") : "#F5F5F7",
+      background: active ? TAB_COLORS[t] : "#F5F5F7",
       color: active ? "#fff" : "#AEAEB2",
       fontFamily: "inherit",
       transition: "background 0.15s, color 0.15s",
     };
   };
 
+  var TAB_TITLES = { vst: "Carnet VST (Stratygo)", vta: "Carnet VTA (TALC)", bouygues: "Carnet Bouygues (C2E)" };
+
   return (
     <div>
-      {/* Tabs VST / VTA */}
       <div style={{ display: "flex", gap: 4, marginBottom: 0 }}>
         <button onClick={function() { setTab("vst"); setSearch(""); }} style={tabStyle("vst")}>
           Carnet VST <span style={{ fontSize: 11, fontWeight: 400, marginLeft: 4, opacity: 0.8 }}>{vstRows.length}</span>
@@ -58,12 +81,14 @@ function CarnetTab() {
         <button onClick={function() { setTab("vta"); setSearch(""); }} style={tabStyle("vta")}>
           Carnet VTA <span style={{ fontSize: 11, fontWeight: 400, marginLeft: 4, opacity: 0.8 }}>{vtaRows.length}</span>
         </button>
+        <button onClick={function() { setTab("bouygues"); setSearch(""); }} style={tabStyle("bouygues")}>
+          Carnet Bouygues <span style={{ fontSize: 11, fontWeight: 400, marginLeft: 4, opacity: 0.8 }}>{bygRows.length}</span>
+        </button>
       </div>
 
-      {/* Header */}
-      <div style={{ background: tab === "vst" ? "#1D1D1F" : "#FF3B30", borderRadius: "0 12px 0 0", padding: "14px 18px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div style={{ background: TAB_COLORS[tab], borderRadius: "0 12px 0 0", padding: "14px 18px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>
-          {tab === "vst" ? "Carnet VST (Stratygo)" : "Carnet VTA (TALC)"}
+          {TAB_TITLES[tab]}
           <span style={{ fontSize: 13, fontWeight: 400, marginLeft: 8, opacity: 0.7 }}>{filtered.length} / {activeRows.length}</span>
         </div>
         <input
@@ -74,7 +99,6 @@ function CarnetTab() {
         />
       </div>
 
-      {/* Table */}
       <div style={{ overflowX: "auto", borderRadius: "0 0 12px 12px", border: "1px solid #E5E5EA", borderTop: "none" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
           <thead>
@@ -89,8 +113,7 @@ function CarnetTab() {
               <tr><td colSpan={headers.length} style={{ padding: 32, textAlign: "center", color: "#AEAEB2" }}>Aucun résultat</td></tr>
             )}
             {filtered.map(function(row, i) {
-              var status = row["etat_commande"] || "";
-              var bg = ROW_COLORS[status.toLowerCase()] || "#fff";
+              var bg = getRowColor(row);
               return (
                 <tr key={i} style={{ background: bg }}>
                   {headers.map(function(h) {
