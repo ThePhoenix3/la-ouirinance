@@ -41,7 +41,7 @@ var [lastSync, setLastSync] = useState(null);
 var [groups, setGroups] = useState([]);
 
 useEffect(function() {
-var unsubPlan, unsubObj;
+var unsubPlan, unsubObj, unsubContracts;
 (async function() {
 try {
   var dpLs = localStorage.getItem(STORAGE_KEYS.dailyPlan);
@@ -101,6 +101,21 @@ Object.keys(savedResolutions).forEach(function(id) {
   }
 });
 setContracts(mergedContracts);
+unsubContracts = onSnapshot(doc(db, "agency", STORAGE_KEYS.contracts), function(snap) {
+  var overrides = snap.exists() ? (snap.data().data || {}) : {};
+  var dIds = new Set(DEMO_CONTRACTS.map(function(c) { return c.id; }));
+  var merged = DEMO_CONTRACTS.map(function(c) {
+    var saved = overrides[c.id];
+    if (!saved) return c;
+    return Object.assign({}, c, { commercial: saved.commercial || c.commercial, vtaResolved: saved.vtaResolved !== undefined ? saved.vtaResolved : c.vtaResolved });
+  });
+  Object.keys(overrides).forEach(function(id) {
+    if (!dIds.has(id) && overrides[id].date) {
+      merged.push(Object.assign({ id: id }, overrides[id]));
+    }
+  });
+  setContracts(merged);
+});
 var loadedTeam = await store.get(STORAGE_KEYS.team) || DEMO_TEAM;
 var loadedGroups = await store.get(STORAGE_KEYS.groups);
 if (!loadedGroups) { try { var lsG = localStorage.getItem(STORAGE_KEYS.groups); if (lsG) { loadedGroups = JSON.parse(lsG); await store.set(STORAGE_KEYS.groups, loadedGroups); } } catch(e) {} }
@@ -116,7 +131,7 @@ store.set(STORAGE_KEYS.groups, renamedGroups);
 setGroups(renamedGroups);
 setLoading(false);
 })();
-return function() { if (unsubPlan) unsubPlan(); if (unsubObj) unsubObj(); };
+return function() { if (unsubPlan) unsubPlan(); if (unsubObj) unsubObj(); if (unsubContracts) unsubContracts(); };
 }, []);
 
 useEffect(function() {
@@ -165,14 +180,16 @@ var saveTeam = function(t) { setTeam(t); store.set(STORAGE_KEYS.team, t); };
 var saveCars = function(c) { setCars(c); store.set(STORAGE_KEYS.cars, c); };
 var saveContracts = function(c) {
   setContracts(c);
-  var overrides = {};
-  c.forEach(function(contract) {
-    var orig = DEMO_CONTRACTS.find(function(d) { return d.id === contract.id; });
-    if (!orig || contract.commercial !== orig.commercial || contract.vtaResolved !== orig.vtaResolved) {
-      overrides[contract.id] = { commercial: contract.commercial, vtaResolved: contract.vtaResolved };
-    }
+  store.get(STORAGE_KEYS.contracts).then(function(existing) {
+    var overrides = existing || {};
+    c.forEach(function(contract) {
+      var orig = DEMO_CONTRACTS.find(function(d) { return d.id === contract.id; });
+      if (!orig || contract.commercial !== orig.commercial || contract.vtaResolved !== orig.vtaResolved) {
+        overrides[contract.id] = { commercial: contract.commercial, vtaResolved: contract.vtaResolved };
+      }
+    });
+    store.set(STORAGE_KEYS.contracts, overrides);
   });
-  store.set(STORAGE_KEYS.contracts, overrides);
 };
 var saveDailyPlan = function(todayPlan) {
   var todayKey = localDateStr(new Date());
