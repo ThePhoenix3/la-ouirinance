@@ -69,6 +69,7 @@ var ResolutionWidget = (manualPending.length > 0 || autoPending.length > 0) ? (
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.04, duration: 0.3 }}
+              className="resolution-row"
               style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: "rgba(255,159,10,0.08)", borderRadius: 10, marginBottom: 6, flexWrap: "wrap" }}>
               <div style={{ flex: 1, minWidth: 120 }}>
                 <span style={{ fontSize: 12, fontWeight: 600, color: "#f0f0f5" }}>{c.ville || '—'}</span>
@@ -77,7 +78,7 @@ var ResolutionWidget = (manualPending.length > 0 || autoPending.length > 0) ? (
                   {c.heure || c.date} · {c.status} · <span style={{ color: "#FF9F0A" }}>{p.reason}</span>
                 </div>
               </div>
-              <div style={{ display: "flex", gap: 6 }}>
+              <div className="resolution-buttons" style={{ display: "flex", gap: 6 }}>
                 {p.candidates.map(function(m) {
                   return (
                     <button key={m.id} onClick={function() { resolveContract(c.id, m.name, !!c.vtaCode); }}
@@ -183,7 +184,7 @@ return (
 {ResolutionWidget}
 
 {/* ── Stat cards ── */}
-<div style={{ display:"flex", gap:12, flexWrap:"wrap" }}>
+<div className="dash-stat-row" style={{ display:"flex", gap:12, flexWrap:"wrap" }}>
   <StatCard label="Aujourd'hui" value={todayC.length} color="#0071E3" />
   <StatCard label="Cette semaine" value={weekC.length} color="#34C759" />
   <StatCard label="Ce mois" value={monthC.length} color="#FF9F0A" />
@@ -191,7 +192,7 @@ return (
 </div>
 
 {/* ── Voitures + Tendance ── */}
-<div style={{ display:"grid", gridTemplateColumns:"2fr 1fr", gap:16 }}>
+<div className="dash-grid-2-1" style={{ display:"grid", gridTemplateColumns:"2fr 1fr", gap:16 }}>
   <Card>
     <h3 style={{ margin:"0 0 14px", fontSize:14, fontWeight:700, color:"#f0f0f5", letterSpacing:-0.3 }}>🚗 Voitures du jour</h3>
     {!dailyPlan ? (
@@ -211,7 +212,7 @@ return (
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ fontSize:12, fontWeight:700, color:color, marginBottom:4 }}>
                   {cp.sector || <span style={{ color:"rgba(255,255,255,0.35)", fontWeight:400 }}>Secteur non défini</span>}
-                  {cp.zoneType === "talc" && <span style={{ fontSize:10, background:color, color:"rgba(255,255,255,0.95)", borderRadius:4, padding:"1px 5px", marginLeft:6 }}>TALC</span>}
+                  {(function() { var hasTalc = cp.zoneType === "talc"; if (!hasTalc && cp.memberZoneTypes) { hasTalc = allMembers.some(function(m) { return cp.memberZoneTypes[m.id] === "talc"; }); } return hasTalc; })() && <span style={{ fontSize:10, background:color, color:"rgba(255,255,255,0.95)", borderRadius:4, padding:"1px 5px", marginLeft:6 }}>TALC</span>}
                 </div>
                 <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
                   {allMembers.map(function(m, mi){
@@ -251,7 +252,7 @@ return (
 </div>
 
 {/* ── Classement + Objectifs ── */}
-<div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
+<div className="dash-grid-1-1" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
   <Card>
     <h3 style={{ margin:"0 0 14px", fontSize:14, fontWeight:600, color:"#f0f0f5", letterSpacing:-0.3 }}>Classement semaine</h3>
     {ranking.length === 0 ? <p style={{ color:"rgba(255,255,255,0.35)", fontSize:13, margin:0 }}>Aucun contrat cette semaine</p> : ranking.slice(0,6).map(function(entry, i){

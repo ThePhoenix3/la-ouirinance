@@ -87,6 +87,7 @@ return (
   animate={{ opacity: 1 }}
   exit={{ opacity: 0 }}
   transition={{ duration: 0.2 }}
+  className="modal-overlay"
   style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.50)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}
   onClick={onClose}>
 <motion.div
@@ -95,7 +96,7 @@ return (
   exit={{ opacity: 0, scale: 0.9 }}
   transition={{ type: "spring", stiffness: 300, damping: 25 }}
   onClick={function(e) { e.stopPropagation(); }}
-  className={className}
+  className={"modal-content" + (className ? " " + className : "")}
   style={{ background: "rgba(30,25,50,0.92)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", borderRadius: 22, padding: 28, width: 480, maxWidth: "92vw", maxHeight: "88vh", overflowY: "auto", boxShadow: "0 32px 80px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.10)" }}>
 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22 }}>
 <h3 style={{ fontSize: 17, fontWeight: 600, letterSpacing: -0.4, color: "#f0f0f5" }}>{title}</h3>

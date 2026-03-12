@@ -46,8 +46,8 @@ function CarnetTab() {
 
   var BOUYGUES_ROW_COLORS = {
     "active": "lightgreen",
-    "vente validée": "WhiteSmoke",
-    "saisie": "#FFD699",
+    "vente validée": "#FFD699",
+    "saisie": "WhiteSmoke",
   };
 
   function getRowColor(row) {

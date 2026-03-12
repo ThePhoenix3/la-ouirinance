@@ -89,3 +89,108 @@ input, select {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.22);
 }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .app-header {
+    padding: 0 12px !important;
+    height: 46px !important;
+  }
+  .header-right {
+    gap: 4px !important;
+  }
+  .header-stat {
+    display: none !important;
+  }
+  .app-nav {
+    padding: 0 6px !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .app-nav button {
+    padding: 0 10px !important;
+    font-size: 12px !important;
+    height: 40px !important;
+  }
+  .app-main {
+    padding: 16px 10px !important;
+  }
+  .dash-stat-row {
+    gap: 8px !important;
+  }
+  .dash-stat-row > * {
+    min-width: calc(50% - 4px) !important;
+    flex: 0 0 calc(50% - 4px) !important;
+  }
+  .dash-grid-2-1,
+  .dash-grid-1-1 {
+    grid-template-columns: 1fr !important;
+  }
+  .car-body {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+  .car-connector {
+    display: none !important;
+  }
+  .car-driver-col {
+    width: 100% !important;
+  }
+  .car-passengers {
+    width: 100% !important;
+  }
+  .car-header {
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    padding: 10px 12px !important;
+  }
+  .car-actions {
+    gap: 6px !important;
+    margin-bottom: 8px !important;
+  }
+  .car-actions > .car-btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .modal-overlay {
+    align-items: flex-end !important;
+  }
+  .modal-content {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    border-radius: 20px 20px 0 0 !important;
+    padding: 20px 16px !important;
+    max-height: 88vh !important;
+  }
+  .picker-modal-content {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    border-radius: 20px 20px 0 0 !important;
+    padding: 20px 16px !important;
+    max-height: 80vh !important;
+  }
+  .resolution-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
+  }
+  .resolution-buttons {
+    align-self: flex-end !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .dash-stat-row > * {
+    min-width: 100% !important;
+    flex: 0 0 100% !important;
+  }
+  .header-brand-text {
+    display: none !important;
+  }
+  .app-header {
+    padding: 0 8px !important;
+  }
+  .app-main {
+    padding: 12px 8px !important;
+  }
+}

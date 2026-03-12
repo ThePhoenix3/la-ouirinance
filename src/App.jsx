@@ -238,12 +238,12 @@ return (
 
 <div style={{ fontFamily: "-apple-system, 'SF Pro Display', 'SF Pro Text', BlinkMacSystemFont, sans-serif", background: "linear-gradient(-45deg, #0f0b1e, #1a1145, #0c2340, #0f0b1e)", backgroundSize: "400% 400%", animation: "gradient-shift 15s ease infinite", minHeight: "100vh", color: "#f0f0f5" }}>
 
-  <header style={{ background: "rgba(15,11,30,0.7)", backdropFilter: "blur(40px) saturate(180%)", WebkitBackdropFilter: "blur(40px) saturate(180%)", borderBottom: "1px solid rgba(255,255,255,0.08)", padding: "0 32px", height: 52, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 100 }}>
+  <header className="app-header" style={{ background: "rgba(15,11,30,0.7)", backdropFilter: "blur(40px) saturate(180%)", WebkitBackdropFilter: "blur(40px) saturate(180%)", borderBottom: "1px solid rgba(255,255,255,0.08)", padding: "0 32px", height: 52, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 100 }}>
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
       <div style={{ width: 28, height: 28, borderRadius: 8, background: "linear-gradient(145deg, #0071E3 0%, #34C759 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#fff", letterSpacing: -0.5, boxShadow: "0 0 12px rgba(0,113,227,0.3)" }}>A</div>
-      <span style={{ fontWeight: 600, fontSize: 15, color: "#f0f0f5", letterSpacing: -0.3 }}>Agence</span>
+      <span className="header-brand-text" style={{ fontWeight: 600, fontSize: 15, color: "#f0f0f5", letterSpacing: -0.3 }}>Agence</span>
     </div>
-    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+    <div className="header-right" style={{ display: "flex", gap: 6, alignItems: "center" }}>
       {scraperStatus !== null ? (
         <span title={"Derni\u00E8re sync : " + (lastSync ? new Date(lastSync).toLocaleTimeString("fr-FR") : "\u2014")}
           style={{ fontSize: 11, fontWeight: 500, color: scraperStatus.ok ? "#34C759" : "#FF3B30",
@@ -260,13 +260,13 @@ return (
           Offline
         </span>
       )}
-      <span style={{ fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.55)", background: "rgba(255,255,255,0.05)", borderRadius: 99, padding: "3px 10px", border: "1px solid rgba(255,255,255,0.08)" }}>{team.filter(function(m) { return m.active; }).length} actifs</span>
-      <span style={{ fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.55)", background: "rgba(255,255,255,0.05)", borderRadius: 99, padding: "3px 10px", border: "1px solid rgba(255,255,255,0.08)" }}>{cars.length} voitures</span>
+      <span className="header-stat" style={{ fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.55)", background: "rgba(255,255,255,0.05)", borderRadius: 99, padding: "3px 10px", border: "1px solid rgba(255,255,255,0.08)" }}>{team.filter(function(m) { return m.active; }).length} actifs</span>
+      <span className="header-stat" style={{ fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.55)", background: "rgba(255,255,255,0.05)", borderRadius: 99, padding: "3px 10px", border: "1px solid rgba(255,255,255,0.08)" }}>{cars.length} voitures</span>
     </div>
   </header>
 
   <LayoutGroup>
-  <nav style={{ display: "flex", gap: 0, padding: "0 24px", background: "rgba(15,11,30,0.5)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", borderBottom: "1px solid rgba(255,255,255,0.08)", overflowX: "auto", position: "relative" }}>
+  <nav className="app-nav" style={{ display: "flex", gap: 0, padding: "0 24px", background: "rgba(15,11,30,0.5)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", borderBottom: "1px solid rgba(255,255,255,0.08)", overflowX: "auto", position: "relative" }}>
     {TABS.map(function(t) {
       var active = tab === t.id;
       return (
@@ -292,7 +292,7 @@ return (
   </nav>
   </LayoutGroup>
 
-  <main style={{ padding: "28px 32px", maxWidth: 1100, margin: "0 auto" }}>
+  <main className="app-main" style={{ padding: "28px 32px", maxWidth: 1100, margin: "0 auto" }}>
     <AnimatePresence mode="wait">
       <motion.div
         key={tab}
