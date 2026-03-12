@@ -1,12 +1,23 @@
 var PROXAD = "https://vad.proxad.net/v1/server.pl";
-var ALLOWED_ORIGIN = "https://claudefeatlamano.github.io";
+var ALLOWED_ORIGINS = [
+  "https://claudefeatlamano.github.io",
+  "http://localhost:5173",
+  "http://localhost:4173"
+];
+
+function getAllowedOrigin(request) {
+  var origin = request.headers.get("Origin") || "";
+  return ALLOWED_ORIGINS.indexOf(origin) >= 0 ? origin : ALLOWED_ORIGINS[0];
+}
 
 export default {
   async fetch(request) {
+    var origin = getAllowedOrigin(request);
+
     if (request.method === "OPTIONS") {
       return new Response(null, {
         headers: {
-          "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
+          "Access-Control-Allow-Origin": origin,
           "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
           "Access-Control-Allow-Headers": "Content-Type, Authorization",
           "Access-Control-Max-Age": "86400"
@@ -34,7 +45,7 @@ export default {
       status: resp.status,
       headers: {
         "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": ALLOWED_ORIGIN
+        "Access-Control-Allow-Origin": origin
       }
     });
   }

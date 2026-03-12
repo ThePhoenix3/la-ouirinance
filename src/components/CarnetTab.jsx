@@ -11,7 +11,17 @@ function CarnetTab() {
   var vstRows = useMemo(function() { return rows.filter(function(r) { return r.login && r.login.indexOf("vst-") === 0; }); }, [rows]);
   var vtaRows = useMemo(function() { return rows.filter(function(r) { return r.login && r.login.indexOf("vta-") === 0; }); }, [rows]);
 
-  var activeRows = tab === "vst" ? vstRows : tab === "vta" ? vtaRows : bygRows;
+  var sortedBygRows = useMemo(function() {
+    return bygRows.slice().sort(function(a, b) {
+      var da = (a.date_inscription || "").split(/[\s/:]/).map(Number);
+      var db = (b.date_inscription || "").split(/[\s/:]/).map(Number);
+      var ta = da.length >= 5 ? new Date(da[2], da[1] - 1, da[0], da[3], da[4]).getTime() : 0;
+      var tb = db.length >= 5 ? new Date(db[2], db[1] - 1, db[0], db[3], db[4]).getTime() : 0;
+      return tb - ta;
+    });
+  }, [bygRows]);
+
+  var activeRows = tab === "vst" ? vstRows : tab === "vta" ? vtaRows : sortedBygRows;
 
   var filtered = useMemo(function() {
     if (!search.trim()) return activeRows;
@@ -24,32 +34,32 @@ function CarnetTab() {
   var headers = activeRows.length > 0 ? Object.keys(activeRows[0]) : [];
 
   var ROW_COLORS = {
-    "inscription ok": "rgba(255,215,0,0.15)",
-    "inscription ok /postprod": "rgba(255,69,0,0.15)",
-    "vente valid\u00E9e": "rgba(255,255,255,0.05)",
-    "vente valid\u00E9e j+7": "rgba(255,255,255,0.08)",
-    "connexion ok": "rgba(52,199,89,0.15)",
-    "connexion ok vrf": "rgba(50,205,50,0.18)",
-    "r\u00E9sili\u00E9": "rgba(178,34,34,0.15)",
-    "vente abandonn\u00E9e": "rgba(112,128,144,0.15)",
+    "inscription ok": "gold",
+    "inscription ok /postprod": "OrangeRed",
+    "vente validée": "WhiteSmoke",
+    "vente validée j+7": "lightgrey",
+    "connexion ok": "lightgreen",
+    "connexion ok vrf": "LimeGreen",
+    "résilié": "firebrick",
+    "vente abandonnée": "SlateGrey",
   };
 
   var BOUYGUES_ROW_COLORS = {
-    "active": "rgba(52,199,89,0.15)",
-    "vente valid\u00E9e": "rgba(255,255,255,0.05)",
-    "saisie": "rgba(255,159,10,0.15)",
+    "active": "lightgreen",
+    "vente validée": "WhiteSmoke",
+    "saisie": "#FFD699",
   };
 
   function getRowColor(row) {
     if (tab === "bouygues") {
       var etat = (row["etat_commande"] || "").trim().toLowerCase();
       if (BOUYGUES_ROW_COLORS[etat]) return BOUYGUES_ROW_COLORS[etat];
-      if (etat.indexOf("ko") === 0) return "rgba(112,128,144,0.15)";
-      if (etat.indexOf("standby") === 0) return "rgba(255,159,10,0.10)";
-      return "transparent";
+      if (etat.indexOf("ko") === 0) return "SlateGrey";
+      if (etat.indexOf("standby") === 0) return "#FFD699";
+      return "#fff";
     }
     var status = row["etat_commande"] || "";
-    return ROW_COLORS[status.toLowerCase()] || "transparent";
+    return ROW_COLORS[status.toLowerCase()] || "#fff";
   }
 
   var TAB_COLORS = { vst: "rgba(255,255,255,0.12)", vta: "rgba(255,59,48,0.25)", bouygues: "rgba(0,55,164,0.3)" };
@@ -118,7 +128,7 @@ function CarnetTab() {
               return (
                 <tr key={i} style={{ background: bg }}>
                   {headers.map(function(h) {
-                    return <td key={h} style={{ padding: "6px 10px", borderBottom: "1px solid rgba(255,255,255,0.04)", whiteSpace: "nowrap", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", color: "#f0f0f5" }}>{row[h] || ""}</td>;
+                    return <td key={h} style={{ padding: "6px 10px", borderBottom: "1px solid rgba(255,255,255,0.04)", whiteSpace: "nowrap", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", color: "#1D1D1F" }}>{row[h] || ""}</td>;
                   })}
                 </tr>
               );
