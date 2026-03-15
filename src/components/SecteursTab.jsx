@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Card, Btn, Inp, Badge, Sel, StatCard } from "./ui.jsx";
 import { JACHERE, JACHERE_TALC } from "../constants/jachere.js";
@@ -6,7 +6,6 @@ import { DEPT_ZONES, OP_COLORS } from "../constants/roles.js";
 import { getC, getTalcC, MONTHS_ORDER, MONTHS_LABELS, normVille } from "../helpers/carnet.js";
 import { DEMO_CONTRACTS } from "../data/contracts.js";
 import { CommuneHeatmap } from "./MapTab.jsx";
-import { localDateStr } from "../helpers/date.js";
 
 function SecteursTab() {
 const [sel, setSel] = useState(null);
@@ -19,16 +18,6 @@ const [rueSort, setRueSort] = useState("top"); // "top" | "recent"
 const [showMap, setShowMap] = useState(false);
 const [communeSearch, setCommuneSearch] = useState("");
 const [dormantFilter, setDormantFilter] = useState(0);
-
-var lastProspection = useMemo(function() {
-  var map = {};
-  DEMO_CONTRACTS.forEach(function(ct) {
-    var v = normVille(ct.ville);
-    if (!v) return;
-    if (!map[v] || ct.date > map[v]) map[v] = ct.date;
-  });
-  return map;
-}, []);
 
 var last6Months = MONTHS_ORDER.slice(-6);
 
@@ -276,11 +265,14 @@ return (
   var cq = communeSearch.trim().toUpperCase();
   var filtered = cq ? sorted.filter(function(c) { return c.v.indexOf(cq) >= 0; }) : sorted;
   if (dormantFilter > 0) {
-    var cutoff = new Date();
-    cutoff.setMonth(cutoff.getMonth() - dormantFilter);
-    var cutoffStr = localDateStr(cutoff);
+    var cutoffIdx = MONTHS_ORDER.length - 1 - dormantFilter;
     filtered = filtered.filter(function(c) {
-      return !lastProspection[c.v] || lastProspection[c.v] < cutoffStr;
+      var lmi = -1;
+      for (var mi = MONTHS_ORDER.length - 1; mi >= 0; mi--) {
+        var cnt = isTalc ? getTalcC(c, jData.dept, MONTHS_ORDER[mi]) : getC(c, jData.dept, MONTHS_ORDER[mi]);
+        if (cnt > 0) { lmi = mi; break; }
+      }
+      return lmi < 0 || lmi <= cutoffIdx;
     });
   }
   return filtered;
@@ -288,23 +280,23 @@ return (
 var cc = isTalc ? getTalcC(c, jData.dept, month) : getC(c, jData.dept, month);
 var t = c.p ? (cc / c.p * 100) : 0;
 var col = t > 0.8 ? "#34C759" : t > 0.3 ? "#FF9F0A" : cc === 0 ? "rgba(255,255,255,0.08)" : "#FF3B30";
-var lpDate = lastProspection[c.v];
+var lastMonthIdx = -1;
+for (var mi = MONTHS_ORDER.length - 1; mi >= 0; mi--) {
+  var cnt = isTalc ? getTalcC(c, jData.dept, MONTHS_ORDER[mi]) : getC(c, jData.dept, MONTHS_ORDER[mi]);
+  if (cnt > 0) { lastMonthIdx = mi; break; }
+}
 var lpText = "";
 var lpColor = "rgba(255,255,255,0.35)";
-if (!lpDate) {
+if (lastMonthIdx < 0) {
   lpText = "Jamais prospectée";
   lpColor = "#FF3B30";
 } else {
-  var lpDiff = Math.floor((new Date() - new Date(lpDate + "T12:00:00")) / 86400000);
-  if (lpDiff === 0) lpText = "Dernier contrat aujourd'hui";
-  else if (lpDiff === 1) lpText = "Dernier contrat hier";
-  else if (lpDiff < 7) lpText = "Dernier contrat il y a " + lpDiff + " j";
-  else if (lpDiff < 30) lpText = "Dernier contrat il y a " + Math.floor(lpDiff / 7) + " sem.";
-  else if (lpDiff < 365) lpText = "Dernier contrat il y a " + Math.floor(lpDiff / 30) + " mois";
-  else lpText = "Dernier contrat il y a " + Math.floor(lpDiff / 365) + " an" + (lpDiff >= 730 ? "s" : "");
-  if (lpDiff < 30) lpColor = "#34C759";
-  else if (lpDiff < 90) lpColor = "#FF9F0A";
-  else lpColor = "#FF3B30";
+  var monthsAgo = MONTHS_ORDER.length - 1 - lastMonthIdx;
+  if (monthsAgo === 0) { lpText = "Prospecté ce mois"; lpColor = "#34C759"; }
+  else {
+    lpText = "Dernier contrat il y a " + monthsAgo + " mois";
+    lpColor = monthsAgo <= 1 ? "#34C759" : monthsAgo <= 3 ? "#FF9F0A" : "#FF3B30";
+  }
 }
 return (
 <motion.div
