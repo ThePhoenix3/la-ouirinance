@@ -117,13 +117,15 @@ function getDormantCommunes(minMonths) {
   return result;
 }
 
-function suggestCluster(dormantCommunes, numMembers, maxRadiusKm) {
+function suggestCluster(dormantCommunes, numMembers, maxRadiusKm, skip) {
   if (!maxRadiusKm) maxRadiusKm = 20;
+  if (!skip) skip = 0;
   if (!dormantCommunes || dormantCommunes.length === 0) return { communes: [], radius: 0 };
 
   var sorted = dormantCommunes.slice().sort(function(a, b) { return b.p - a.p; });
 
-  var seed = sorted[0];
+  var seedIdx = skip % sorted.length;
+  var seed = sorted[seedIdx];
   var cluster = [seed];
   var used = {};
   used[seed.v + "|" + seed.dept] = true;

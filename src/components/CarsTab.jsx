@@ -64,6 +64,7 @@ function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups, proxa
   const [proxadForm, setProxadForm] = useState({ login: "", password: "" });
   var proxadUsersRef = useRef(null);
   const [suggestions, setSuggestions] = useState({});
+  var suggestionSkipRef = useRef({});
 
   var at = team.filter(function(m) { return m.active; });
 
@@ -182,7 +183,9 @@ function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups, proxa
     });
 
     var filtered = dormant.filter(function(c) { return !assignedCommunes[c.v]; });
-    var result = suggestCluster(filtered, numPersonnes, 20);
+    var skip = suggestionSkipRef.current[carId] || 0;
+    var result = suggestCluster(filtered, numPersonnes, 20, skip);
+    suggestionSkipRef.current[carId] = skip + 1;
     setSuggestions(function(prev) { return Object.assign({}, prev, { [carId]: result }); });
   }
 
