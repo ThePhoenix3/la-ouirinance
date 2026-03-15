@@ -1,14 +1,56 @@
 import React, { useState, useRef } from "react";
-import { Badge, Card, Btn, Sel, Inp, Modal } from "./ui.jsx";
+import { Badge, Card, Btn, Sel, Inp, Modal, StatCard } from "./ui.jsx";
 import { ROLES, ROLE_LABELS, ROLE_COLORS, OPERATORS, OP_COLORS } from "../constants/roles.js";
 import { VTA_GROUPS } from "../constants/vta.js";
 import { CommuneAutocomplete } from "./SectorAutocomplete.jsx";
 import { localDateStr } from "../helpers/date.js";
+import { isCaduque } from "../helpers/status.js";
 import { searchCommune, getProxadUsers, affectCommune, matchMemberToProxadUser } from "../data/proxad.js";
 
-function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups, proxadCredentials, saveProxadCreds }) {
+function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups, proxadCredentials, saveProxadCreds, contracts }) {
   var CAR_PALETTE = ["#0071E3","#34C759","#FF9F0A","#AF52DE","#FF2D55","#5AC8FA","#FF6B35","#00B4D8"];
   var _todayKey = localDateStr(new Date());
+
+  // --- Historique veille ---
+  var _today = new Date();
+  var _dayOfWeek = _today.getDay();
+  var _veilleDates = [];
+  if (_dayOfWeek === 1) {
+    var _fri = new Date(_today); _fri.setDate(_today.getDate() - 3);
+    var _sat = new Date(_today); _sat.setDate(_today.getDate() - 2);
+    _veilleDates.push(localDateStr(_fri));
+    _veilleDates.push(localDateStr(_sat));
+  } else if (_dayOfWeek === 0) {
+    var _fri2 = new Date(_today); _fri2.setDate(_today.getDate() - 2);
+    var _sat2 = new Date(_today); _sat2.setDate(_today.getDate() - 1);
+    _veilleDates.push(localDateStr(_fri2));
+    _veilleDates.push(localDateStr(_sat2));
+  } else {
+    var _yesterday = new Date(_today); _yesterday.setDate(_today.getDate() - 1);
+    _veilleDates.push(localDateStr(_yesterday));
+  }
+
+  var _veilleLabel = _veilleDates.length === 2
+    ? new Date(_veilleDates[0] + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })
+      + " & " + new Date(_veilleDates[1] + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })
+    : new Date(_veilleDates[0] + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+
+  var _veillePlans = _veilleDates.map(function(d) { return { date: d, plan: (dailyPlan && dailyPlan[d]) || null }; });
+  var _hasVeillePlan = _veillePlans.some(function(vp) { return vp.plan !== null; });
+
+  var _veilleCounts = {};
+  if (contracts) {
+    contracts.forEach(function(c) {
+      if (_veilleDates.indexOf(c.date) >= 0 && !isCaduque(c)) {
+        _veilleCounts[c.commercial] = (_veilleCounts[c.commercial] || 0) + 1;
+      }
+    });
+  }
+  var _veilleTotal = 0;
+  var _veilleActifs = 0;
+  Object.keys(_veilleCounts).forEach(function(k) { _veilleTotal += _veilleCounts[k]; if (_veilleCounts[k] > 0) _veilleActifs++; });
+  var _veilleMoy = _veilleActifs > 0 ? (_veilleTotal / _veilleActifs).toFixed(1) : "0";
+
   const [plan, setPlan] = useState((dailyPlan && dailyPlan[_todayKey]) || {});
   const [dragging, setDragging] = useState(null); // { memberId, fromCarId }
   const [dropTarget, setDropTarget] = useState(null); // carId or "pool"
@@ -290,6 +332,78 @@ function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups, proxa
           onClose={function() { setPicker(null); }}
         />
       )}
+
+      {/* Historique veille */}
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#f0f0f5", letterSpacing: -0.3 }}>Historique veille</h3>
+          <span style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", fontWeight: 500 }}>{_veilleLabel}</span>
+        </div>
+
+        <div className="stat-row" style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+          <StatCard label="Contrats veille" value={_veilleTotal} color="#34C759" />
+          <StatCard label="Commerciaux actifs" value={_veilleActifs} color="#0071E3" />
+          <StatCard label="Moy / commercial" value={_veilleMoy} color="#AF52DE" />
+        </div>
+
+        {!_hasVeillePlan && (
+          <Card style={{ padding: "20px 24px", textAlign: "center" }}>
+            <span style={{ fontSize: 13, color: "rgba(255,255,255,0.45)" }}>Aucun historique pour cette date</span>
+          </Card>
+        )}
+
+        {_veillePlans.filter(function(vp) { return vp.plan !== null; }).map(function(vp, vpIdx) {
+          var dayLabel = new Date(vp.date + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+          return (
+            <div key={vp.date}>
+              {_veilleDates.length === 2 && (
+                <div style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.55)", marginBottom: 10, marginTop: vpIdx > 0 ? 16 : 0, textTransform: "capitalize" }}>{dayLabel}</div>
+              )}
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {cars.map(function(car, ci) {
+                  var accent = CAR_PALETTE[ci % CAR_PALETTE.length];
+                  var vcp = vp.plan[car.id];
+                  if (!vcp) return null;
+                  var vDriver = car.driverId ? team.find(function(m) { return m.id === car.driverId; }) : null;
+                  var vPassengers = (vcp.members || []).map(function(id) { return team.find(function(m) { return m.id === id; }); }).filter(Boolean);
+                  if (!vDriver && vPassengers.length === 0) return null;
+                  var allMembers = [vDriver].concat(vPassengers).filter(Boolean);
+                  var sectorLabel = vcp.sector || (vcp.zoneType === "talc" ? "TALC" : "");
+                  return (
+                    <div key={car.id} style={{ background: "rgba(255,255,255,0.03)", borderRadius: 14, border: "1px solid rgba(255,255,255,0.08)", padding: "12px 16px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                        <div style={{ width: 8, height: 8, borderRadius: 99, background: accent, flexShrink: 0 }} />
+                        <span style={{ fontSize: 13, fontWeight: 700, color: "#f0f0f5", letterSpacing: -0.3 }}>{car.name}</span>
+                        {sectorLabel && <span style={{ fontSize: 10, fontWeight: 700, color: accent, background: accent + "15", padding: "2px 8px", borderRadius: 99 }}>{sectorLabel}</span>}
+                      </div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                        {allMembers.map(function(m) {
+                          var isDriver = vDriver && m.id === vDriver.id;
+                          var commune = (vcp.memberCommunes && vcp.memberCommunes[m.id]) || "";
+                          var count = _veilleCounts[m.name] || 0;
+                          return (
+                            <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.05)", borderRadius: 10, padding: "8px 12px", borderLeft: "3px solid " + accent + (isDriver ? "" : "77") }}>
+                              <Avatar name={m.name} role={m.role} size={32} />
+                              <div>
+                                <div style={{ fontSize: 12, fontWeight: 600, color: "#f0f0f5", letterSpacing: -0.2 }}>{m.name}</div>
+                                <div style={{ display: "flex", gap: 4, marginTop: 2, flexWrap: "wrap" }}>
+                                  <span style={{ fontSize: 9, fontWeight: 700, color: isDriver ? accent : "rgba(255,255,255,0.45)", background: isDriver ? accent + "20" : "rgba(255,255,255,0.08)", padding: "1px 5px", borderRadius: 99 }}>{isDriver ? "Conducteur" : "Passager"}</span>
+                                  {contracts && <span style={{ fontSize: 9, fontWeight: 700, color: count > 0 ? "#34C759" : "rgba(255,255,255,0.35)", background: count > 0 ? "#34C75915" : "rgba(255,255,255,0.06)", padding: "1px 5px", borderRadius: 99 }}>{count} contrat{count !== 1 ? "s" : ""}</span>}
+                                  {commune && <span style={{ fontSize: 9, fontWeight: 600, color: "rgba(255,255,255,0.5)", background: "rgba(255,255,255,0.06)", padding: "1px 5px", borderRadius: 99 }}>{commune}</span>}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                }).filter(Boolean)}
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
       <div className="car-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <div>

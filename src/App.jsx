@@ -225,7 +225,7 @@ if (loading) return (
 var tabContent = null;
 if (tab === "dashboard") tabContent = <DashboardTab team={team} contracts={contracts} saveContracts={saveContracts} dailyPlan={dailyPlan} cars={cars} lastSync={lastSync} scraperStatus={scraperStatus} objectives={objectives} />;
 else if (tab === "team") tabContent = <TeamTab team={team} saveTeam={saveTeam} contracts={contracts} saveContracts={saveContracts} groups={groups} saveGroups={saveGroups} />;
-else if (tab === "cars") tabContent = <CarsTab team={team} cars={cars} saveCars={saveCars} dailyPlan={dailyPlan} saveDailyPlan={saveDailyPlan} groups={groups} proxadCredentials={proxadCreds} saveProxadCreds={saveProxadCreds} />;
+else if (tab === "cars") tabContent = <CarsTab team={team} cars={cars} saveCars={saveCars} dailyPlan={dailyPlan} saveDailyPlan={saveDailyPlan} groups={groups} proxadCredentials={proxadCreds} saveProxadCreds={saveProxadCreds} contracts={contracts} />;
 else if (tab === "contracts") tabContent = <ContractsTab contracts={contracts} team={team} dailyPlan={dailyPlan} cars={cars} saveContracts={saveContracts} />;
 else if (tab === "map") tabContent = <MapTab />;
 else if (tab === "secteurs") tabContent = <SecteursTab />;
