@@ -6,6 +6,7 @@ import { CommuneAutocomplete } from "./SectorAutocomplete.jsx";
 import { localDateStr } from "../helpers/date.js";
 import { isCaduque } from "../helpers/status.js";
 import { searchCommune, getProxadUsers, affectCommune, matchMemberToProxadUser } from "../data/proxad.js";
+import { getDormantCommunes, suggestCluster, haversine } from "../helpers/suggestions.js";
 
 function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups, proxadCredentials, saveProxadCreds, contracts }) {
   var CAR_PALETTE = ["#0071E3","#34C759","#FF9F0A","#AF52DE","#FF2D55","#5AC8FA","#FF6B35","#00B4D8"];
@@ -62,6 +63,7 @@ function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups, proxa
   const [showProxadConfig, setShowProxadConfig] = useState(false);
   const [proxadForm, setProxadForm] = useState({ login: "", password: "" });
   var proxadUsersRef = useRef(null);
+  const [suggestions, setSuggestions] = useState({});
 
   var at = team.filter(function(m) { return m.active; });
 
@@ -154,6 +156,63 @@ function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups, proxa
 
   function getMemberZone(cp, memberId) {
     return (cp.memberZoneTypes && cp.memberZoneTypes[memberId]) || cp.zoneType || "stratygo";
+  }
+
+  function computeSuggestion(carId) {
+    var cp = plan[carId] || { members: [], zoneType: "stratygo" };
+    var car = cars.find(function(c) { return c.id === carId; });
+    if (!car) return;
+    var memberIds = (cp.members || []).slice();
+    if (car.driverId) memberIds.push(car.driverId);
+    var numPersonnes = memberIds.length;
+    if (numPersonnes === 0) return;
+
+    var zt = cp.zoneType || "stratygo";
+    var dormant = getDormantCommunes(2).filter(function(c) { return c.zoneType === zt; });
+
+    var assignedCommunes = {};
+    Object.keys(plan).forEach(function(cid) {
+      var p = plan[cid];
+      if (p && p.memberCommunes) {
+        Object.keys(p.memberCommunes).forEach(function(mid) {
+          var v = p.memberCommunes[mid];
+          if (v) assignedCommunes[v.toUpperCase()] = true;
+        });
+      }
+    });
+
+    var filtered = dormant.filter(function(c) { return !assignedCommunes[c.v]; });
+    var result = suggestCluster(filtered, numPersonnes, 20);
+    setSuggestions(function(prev) { return Object.assign({}, prev, { [carId]: result }); });
+  }
+
+  function applySuggestion(carId) {
+    var sug = suggestions[carId];
+    if (!sug || !sug.communes || sug.communes.length === 0) return;
+    var car = cars.find(function(c) { return c.id === carId; });
+    if (!car) return;
+    var cp = plan[carId] || { members: [], zoneType: "stratygo" };
+    var memberIds = [];
+    if (car.driverId) memberIds.push(car.driverId);
+    (cp.members || []).forEach(function(id) { memberIds.push(id); });
+    if (memberIds.length === 0) return;
+
+    var sorted = sug.communes.slice().sort(function(a, b) { return b.p - a.p; });
+
+    var u = JSON.parse(JSON.stringify(plan));
+    if (!u[carId]) u[carId] = { members: cp.members || [], sector: "", zoneType: cp.zoneType || "stratygo", vtaCode: "" };
+    if (!u[carId].memberCommunes) u[carId].memberCommunes = {};
+
+    for (var i = 0; i < memberIds.length && i < sorted.length; i++) {
+      u[carId].memberCommunes[memberIds[i]] = sorted[i].v;
+    }
+
+    var allSameSector = sorted.length > 0 && sorted.every(function(c) { return c.sector === sorted[0].sector; });
+    if (allSameSector && sorted.length > 0) {
+      u[carId].sector = sorted[0].sector;
+    }
+
+    updatePlan(u);
   }
 
   function setVtaCode(cid, v) {
@@ -527,6 +586,38 @@ function CarsTab({ team, cars, saveCars, dailyPlan, saveDailyPlan, groups, proxa
                   </div>
                 </div>
               </div>}
+
+              {/* Suggestion panel */}
+              {!inactive && (driver || passengers.length > 0) && (function() {
+                var sug = suggestions[car.id];
+                var seedCoords = sug && sug.communes && sug.communes.length > 0 ? sug.communes[0] : null;
+                return (
+                  <div style={{ padding: "0 18px 14px" }}>
+                    <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: "12px 16px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: sug && sug.communes && sug.communes.length > 0 ? 10 : 0 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: "#FF9F0A", flex: 1 }}>💡 Suggestion</span>
+                        <Btn v="secondary" s="sm" onClick={function() { computeSuggestion(car.id); }}>Suggérer</Btn>
+                        {sug && sug.communes && sug.communes.length > 0 && <Btn s="sm" onClick={function() { applySuggestion(car.id); }}>Appliquer ✓</Btn>}
+                      </div>
+                      {sug && sug.communes && sug.communes.length > 0 && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                          {sug.communes.map(function(c, idx) {
+                            var dist = idx === 0 ? 0 : Math.round(haversine(seedCoords.lat, seedCoords.lon, c.lat, c.lon));
+                            return (
+                              <div key={c.v + "|" + c.dept} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
+                                <span style={{ color: "#FF9F0A", fontWeight: 700 }}>●</span>
+                                <span style={{ color: "#f0f0f5", fontWeight: 600, flex: 1 }}>{c.v} <span style={{ color: "rgba(255,255,255,0.45)", fontWeight: 400 }}>({c.monthsAgo} mois)</span> — <span style={{ color: "rgba(255,255,255,0.55)" }}>{c.p.toLocaleString("fr-FR")} prises</span></span>
+                                <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, fontWeight: 500, flexShrink: 0 }}>{dist} km</span>
+                              </div>
+                            );
+                          })}
+                          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 4 }}>Rayon max : {sug.radius} km</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* TALC: show summary of codes in car */}
               {!inactive && (driver || passengers.length > 0) && [driver, ...passengers].filter(Boolean).some(function(m) { return getMemberZone(cp, m.id) === "talc"; }) && (
