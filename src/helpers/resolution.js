@@ -39,9 +39,24 @@ function resolveVTA(vtaCode, date, dailyPlan, team) {
 }
 
 function getPendingResolutions(contracts, team, dailyPlan, cars) {
-  var today = localDateStr(new Date());
-  var yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-  var yesterdayStr = localDateStr(yesterday);
+  var today = new Date();
+  var todayStr = localDateStr(today);
+  var dayOfWeek = today.getDay();
+
+  var dates = [todayStr];
+  if (dayOfWeek === 1) {
+    var fri = new Date(today); fri.setDate(today.getDate() - 3);
+    var sat = new Date(today); sat.setDate(today.getDate() - 2);
+    var sun = new Date(today); sun.setDate(today.getDate() - 1);
+    dates.push(localDateStr(fri), localDateStr(sat), localDateStr(sun));
+  } else if (dayOfWeek === 0) {
+    var fri2 = new Date(today); fri2.setDate(today.getDate() - 2);
+    var sat2 = new Date(today); sat2.setDate(today.getDate() - 1);
+    dates.push(localDateStr(fri2), localDateStr(sat2));
+  } else {
+    var yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+    dates.push(localDateStr(yesterday));
+  }
 
   var lentMap = {};
   team.forEach(function(m) {
@@ -52,7 +67,6 @@ function getPendingResolutions(contracts, team, dailyPlan, cars) {
   });
 
   var pending = [];
-  var dates = [yesterdayStr, today];
 
   dates.forEach(function(dateStr) {
     var dayPlan = (dailyPlan && dailyPlan[dateStr]) || {};
