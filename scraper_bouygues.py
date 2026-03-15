@@ -29,7 +29,8 @@ def scrape():
     login_resp.raise_for_status()
 
     if "logout" not in login_resp.text.lower() and "déconnexion" not in login_resp.text.lower():
-        print("Login may have failed – check credentials")
+        print("Login failed – check credentials")
+        return
 
     # Date range: 3 months back → today
     today = datetime.date.today()
@@ -49,12 +50,7 @@ def scrape():
     table = soup.find("table")
 
     if not table:
-        print("No table found on page")
-        output = {
-            "scraped_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            "rows": [],
-        }
-        save(output)
+        print("No table found on page – keeping existing data")
         return
 
     headers = [th.get_text(strip=True) for th in table.find_all("th")]
@@ -72,6 +68,10 @@ def scrape():
         if key and key not in seen:
             seen.add(key)
             unique_rows.append(row)
+
+    if len(unique_rows) == 0:
+        print("0 rows scraped – keeping existing data")
+        return
 
     output = {
         "scraped_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
