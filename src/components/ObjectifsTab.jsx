@@ -7,7 +7,7 @@ import { localDateStr } from "../helpers/date.js";
 
 function ObjectifsTab({ team, contracts, objectives, saveObjectives }) {
   function getWeekKey(date) {
-    var d = new Date(date); d.setHours(0,0,0,0); d.setDate(d.getDate() - d.getDay() + 1);
+    var d = new Date(date); d.setHours(0,0,0,0); var dow = d.getDay() || 7; d.setDate(d.getDate() - dow + 1);
     return localDateStr(d);
   }
   function getWeekLabel(weekKey) {
