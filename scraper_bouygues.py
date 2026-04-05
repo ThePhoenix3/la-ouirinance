@@ -43,7 +43,7 @@ def scrape():
         BASE_URL
         + "/details_bouygues.php"
         + f"?debut={debut.isoformat()}&fin={today.isoformat()}"
-        + "&periode=month&mode=equipe&equipe=403"
+        + "&periode=month&mode=equipe&equipe=428"
     )
 
     resp = session.get(url, timeout=60)
@@ -84,7 +84,7 @@ def scrape():
     }
 
     save(output)
-    print(f"Bouygues: {len(unique_rows)} unique rows → src/data_bouygues.json")
+    print(f"Bouygues: {len(unique_rows)} unique rows -> src/data_bouygues.json")
 
 
 def save(output):
