@@ -44,6 +44,7 @@ jobs:
         run: python scraper.py
 
       - name: Run Bouygues scraper
+        continue-on-error: true
         env:
           BOUYGUES_USER: ${{ secrets.BOUYGUES_USER }}
           BOUYGUES_PASS: ${{ secrets.BOUYGUES_PASS }}

@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import json
 import os
+import sys
 import datetime
 from dateutil.relativedelta import relativedelta
 
@@ -12,8 +13,8 @@ PASSWORD = os.environ.get("BOUYGUES_PASS", "")
 
 def scrape():
     if not USERNAME or not PASSWORD:
-        print("BOUYGUES_USER / BOUYGUES_PASS not set, skipping")
-        return
+        print("ERROR: BOUYGUES_USER / BOUYGUES_PASS not set")
+        sys.exit(1)
 
     session = requests.Session()
 
@@ -29,8 +30,10 @@ def scrape():
     login_resp.raise_for_status()
 
     if "logout" not in login_resp.text.lower() and "déconnexion" not in login_resp.text.lower():
-        print("Login failed – check credentials")
-        return
+        print("ERROR: Login failed – check credentials")
+        print(f"Response status: {login_resp.status_code}")
+        print(f"Response body (first 500 chars): {login_resp.text[:500]}")
+        sys.exit(1)
 
     # Date range: 3 months back → today
     today = datetime.date.today()
@@ -50,8 +53,9 @@ def scrape():
     table = soup.find("table")
 
     if not table:
-        print("No table found on page – keeping existing data")
-        return
+        print("ERROR: No table found on page")
+        print(f"Response body (first 500 chars): {resp.text[:500]}")
+        sys.exit(1)
 
     headers = [th.get_text(strip=True) for th in table.find_all("th")]
     rows = []
@@ -70,8 +74,9 @@ def scrape():
             unique_rows.append(row)
 
     if len(unique_rows) == 0:
-        print("0 rows scraped – keeping existing data")
-        return
+        print("ERROR: 0 rows scraped")
+        print(f"Headers found: {headers}")
+        sys.exit(1)
 
     output = {
         "scraped_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
