@@ -78,13 +78,38 @@ def scrape():
         print(f"Headers found: {headers}")
         sys.exit(1)
 
+    existing = load_existing()
+    merged = merge_rows(existing, unique_rows)
+
     output = {
         "scraped_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        "rows": unique_rows,
+        "rows": merged,
     }
 
     save(output)
-    print(f"Bouygues: {len(unique_rows)} unique rows -> src/data_bouygues.json")
+    print(f"Bouygues: {len(unique_rows)} new, {len(merged)} total -> src/data_bouygues.json")
+
+
+def load_existing():
+    output_path = os.path.join(os.path.dirname(__file__), "src", "data_bouygues.json")
+    if not os.path.exists(output_path):
+        return []
+    with open(output_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    return data.get("rows", [])
+
+
+def merge_rows(existing, fresh):
+    by_key = {}
+    for row in existing:
+        key = row.get("num_contrat", "")
+        if key:
+            by_key[key] = row
+    for row in fresh:
+        key = row.get("num_contrat", "")
+        if key:
+            by_key[key] = row
+    return list(by_key.values())
 
 
 def save(output):
